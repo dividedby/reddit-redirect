@@ -9,7 +9,6 @@
 // @contributionAmount  $1
 // @include     reddit.com
 // @run-at      document-start
-
 // @downloadURL https://update.greasyfork.org/scripts/495315/New%20Reddit%20Hot%20Redirect.user.js
 // @updateURL   https://update.greasyfork.org/scripts/495315/New%20Reddit%20Hot%20Redirect.user.js
 // ==/UserScript==
