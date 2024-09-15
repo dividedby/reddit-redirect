@@ -2,7 +2,7 @@
 // @name        Reddit Hot Redirect with Logo Click Handler
 // @author      dividedby
 // @description Redirects default frontpage from 'best' to 'hot' and handles logo clicks
-// @version     1.1
+// @version     1.2
 // @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // @contributionURL     https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=dividedbyerror@gmail.com&item_name=Reddit+Hot+Donation
 // @contributionAmount  $1
@@ -17,21 +17,43 @@
 (function() {
     'use strict';
 
-    if (location.pathname === '/') {
-        location.replace('https://www.reddit.com/hot');
+    function redirectToHot() {
+        if (window.location.pathname === '/' || window.location.pathname.startsWith('/r/')) {
+            window.location.href = 'https://www.reddit.com/hot';
+        }
     }
 
-    const observer = new MutationObserver(() => {
-        const logo = document.querySelector('a[aria-label="Home"]');
+    function handleLogoClick(e) {
+        e.preventDefault();
+        window.location.href = 'https://www.reddit.com/hot';
+    }
+
+    function attachLogoListener() {
+        const logo = document.querySelector('#reddit-logo');
         if (logo && !logo.dataset.hotRedirect) {
             logo.dataset.hotRedirect = true;
-            logo.addEventListener('click', e => {
-                e.preventDefault();
-                location.href = 'https://www.reddit.com/hot';
-            });
-            observer.disconnect();
+            logo.addEventListener('click', handleLogoClick);
+        }
+    }
+
+    // Initial redirect
+    redirectToHot();
+
+    // Set up MutationObserver to handle dynamically loaded content
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.type === 'childList') {
+                attachLogoListener();
+            }
         }
     });
 
+    // Start observing the document with the configured parameters
     observer.observe(document.body, { childList: true, subtree: true });
+
+    // Attach listener to initial logo if it exists
+    attachLogoListener();
+
+    // Listen for navigation events
+    window.addEventListener('popstate', redirectToHot);
 })();
