@@ -3,7 +3,7 @@
 // @namespace   https://greasyfork.org/en/users/594496-divided-by
 // @author      dividedby
 // @description Redirects default frontpage from 'best' to 'hot' and handles logo clicks
-// @version     1.3
+// @version     1.4
 // @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // @contributionURL     https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=dividedbyerror@gmail.com&item_name=Reddit+Hot+Donation
 // @contributionAmount  $1
@@ -18,13 +18,15 @@
     'use strict';
 
     function redirectToHot() {
-        if (window.location.pathname === '/' || window.location.pathname.startsWith('/r/')) {
+        // Automatically redirect only on homepage
+        if (window.location.pathname === '/') {
             window.location.href = 'https://www.reddit.com/hot';
         }
     }
 
     function handleLogoClick(e) {
         e.preventDefault();
+        // Always redirect to hot regardless of current page
         window.location.href = 'https://www.reddit.com/hot';
     }
 
@@ -36,7 +38,7 @@
         }
     }
 
-    // Initial redirect
+    // Initial redirect only on homepage
     redirectToHot();
 
     // Set up MutationObserver to handle dynamically loaded content
@@ -54,6 +56,6 @@
     // Attach listener to initial logo if it exists
     attachLogoListener();
 
-    // Listen for navigation events
+    // Listen for navigation events (popstate)
     window.addEventListener('popstate', redirectToHot);
 })();
