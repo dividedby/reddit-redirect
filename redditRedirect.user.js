@@ -5,7 +5,7 @@
 // @description Redirects default frontpage from 'best' to 'hot' and handles logo clicks
 // @version     1.4
 // @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
-// @contributionURL     https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=dividedbyerror@gmail.com&item_name=Reddit+Hot+Donation
+// @contributionURL     https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=dividedbygit@gmail.com&item_name=Reddit+Hot+Donation
 // @contributionAmount  $1
 // @match       https://www.reddit.com/*
 // @run-at      document-start
