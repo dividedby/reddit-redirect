@@ -26,7 +26,6 @@ Where the issue sits in the workflow. Combine freely with a category label.
 | `ready-for-human` | `1D76DB` | Requires human implementation                                    |
 | `blocked`         | `E4820A` | Ready to proceed but waiting on an external dependency or decision |
 | `wontfix`         | `FFFFFF` | Will not be actioned                                             |
-| `idea-inbox`      | `D4C5F9` | The single freeform idea-intake issue for this repo (one per repo) |
 
 ## CORE — Category (all repos)
 
