@@ -27,7 +27,7 @@
     redirectToHot();
     window.addEventListener('popstate', redirectToHot);
 
-    // ponytail: event delegation catches the logo even after SPA re-renders —
+    // shortcut: event delegation catches the logo even after SPA re-renders —
     // no MutationObserver, and no document.body (null at document-start) needed.
     document.addEventListener('click', (e) => {
         if (e.target.closest('#reddit-logo')) {
