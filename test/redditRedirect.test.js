@@ -21,7 +21,7 @@ const load = (pathname, { search = '', withNavigation = true, store = {}, now = 
   const winListeners = {};
   const navListeners = {};
   const on = l => (type, fn, capture) => { (l[type] ||= []).push({ fn, capture }); };
-  const document = { addEventListener: on(docListeners) };
+  const document = { addEventListener: on(docListeners), visibilityState: 'visible' };
   const navigation = withNavigation ? { addEventListener: on(navListeners) } : undefined;
   const window = { addEventListener: on(winListeners), navigation };
   const deny = () => { throw new Error('SecurityError'); };
@@ -33,7 +33,7 @@ const load = (pathname, { search = '', withNavigation = true, store = {}, now = 
   const FakeDate = { now: () => clock.now };
   new Function('window', 'document', 'location', 'navigation', 'history', 'localStorage', 'Date', src)(
     window, document, location, navigation, {}, localStorage, FakeDate);
-  return { calls, location, docListeners, winListeners, navListeners, store, clock };
+  return { calls, location, document, docListeners, winListeners, navListeners, store, clock };
 };
 
 const OLD = 'https://old.reddit.com/hot';
@@ -178,4 +178,15 @@ test('bad stored values are ignored', () => {
 test('without storage the redirect still works', () => {
   assert.deepEqual(load('/', { noStorage: true }).calls.replace, [OLD]);
   assert.deepEqual(load('/user/a/m/b', { noStorage: true }).calls.replace, []);
+});
+
+test('a front page loaded in the background is checked again when shown (Safari preload)', () => {
+  const t = load('/r/y');
+  t.location.pathname = '/';
+  t.document.visibilityState = 'hidden';
+  fire(t.docListeners, 'visibilitychange');
+  assert.deepEqual(t.calls.replace, []);
+  t.document.visibilityState = 'visible';
+  fire(t.docListeners, 'visibilitychange');
+  assert.deepEqual(t.calls.replace, [OLD]);
 });

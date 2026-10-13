@@ -85,6 +85,12 @@
 
   onPage();
 
+  // Safari can load a page you're typing before you open it ("Preload Top Hit"); a redirect
+  // made then can be lost, so check again once the page is shown.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') onPage();
+  });
+
   // In-app navigation (pushState) isn't seen by popstate; the Navigation API reports every
   // same-document navigation. Targets never match FRONT, so there's no loop.
   if (window.navigation) {

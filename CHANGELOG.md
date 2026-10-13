@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
   showed Best.
 - If old Reddit sends you back to the new design, they go to the custom feed you last
   opened, sorted by Hot, for a day; with no custom feed, the front page is left alone.
+- In Safari, a front page preloaded while you type the address is redirected once it's shown.
 - Internal: code brought to the shared style, and tests added.
 
 ## [1.6] - 2026-10-13
