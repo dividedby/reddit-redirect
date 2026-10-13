@@ -2,7 +2,7 @@
 // @name        Reddit Hot Redirect with Logo Click Handler
 // @namespace   https://greasyfork.org/en/users/594496-divided-by
 // @author      dividedby
-// @description Opens Reddit's front page on Hot: old Reddit, or your custom feed if old Reddit turns you away. The logo goes there too
+// @description Opens Reddit in old Reddit, with the front page on Hot (or your custom feed if old Reddit turns you away). The logo goes there too
 // @version     2.1
 // @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/dividedby/reddit-redirect
@@ -18,38 +18,48 @@
 // @updateURL   https://update.greasyfork.org/scripts/508344/Reddit%20Hot%20Redirect%20with%20Logo%20Click%20Handler.meta.js
 // ==/UserScript==
 
-// The new design has no Hot home feed any more (Best/New only), so the front page goes,
-// in order of preference, to:
-//   1. old Reddit's Hot (old.reddit.com/hot);
-//   2. if old Reddit sent you back here, your custom feed sorted by Hot (the custom feed
-//      you last opened on www.reddit.com);
+// Reddit pages open in old Reddit, and the front page on Hot. The new design has no Hot
+// front page any more (Best/New only), and old Reddit's front page shows Best when you're
+// logged in. In order of preference:
+//   1. old Reddit: every page except the few only the new design has (NEW_ONLY), with the
+//      front page on Hot (old.reddit.com/hot);
+//   2. if old Reddit sent you back here, pages stay on the new design and the front page
+//      goes to your custom feed sorted by Hot (the custom feed you last opened here);
 //   3. with neither, Reddit's own front page, left alone.
 // A turn-away from old Reddit is remembered for a day, then old Reddit is tried again.
 
 (() => {
   'use strict';
 
-  // Old Reddit's logo links to the front page, which opens on Best when you're logged in:
-  // point it at Hot instead. (On a subreddit with its own header image, the logo links to
-  // the subreddit and is left alone.) Old Reddit isn't an app, so once is enough.
+  const OLD = 'https://old.reddit.com';
+
+  // On old Reddit, only the bare front page (where the logo points) is sent to Hot.
   if (location.hostname === 'old.reddit.com') {
-    document.addEventListener('DOMContentLoaded', () => {
-      const logo = document.getElementById('header-img-a');
-      if (logo && new URL(logo.href, location.href).pathname === '/') logo.href = '/hot';
+    const toHot = () => {
+      if (location.pathname === '/') location.replace('/hot' + location.search + location.hash);
+    };
+    toHot();
+    // Safari can load a page you're typing before you open it ("Preload Top Hit"); a
+    // redirect made then can be lost, so check again once the page is shown.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') toHot();
     });
     return;
   }
 
-  const OLD_HOT = 'https://old.reddit.com/hot';
   const KEY_TRIED = 'rhr:oldTried';     // when we last sent you to old Reddit (ms)
+  const KEY_TRIED_PATH = 'rhr:oldPath'; // and from which page
   const KEY_REFUSED = 'rhr:oldRefused'; // when old Reddit last sent you back (ms)
   const KEY_FEED = 'rhr:feed';          // custom feed path, e.g. /user/name/m/feed
-  const BOUNCE_MS = 15e3;               // back on the front page this soon = sent back
+  const BOUNCE_MS = 15e3;               // back here this soon = sent back
   const RETRY_MS = 864e5;               // try old Reddit again after a day
 
   // The front page under any of its names; '/hot' and '/best' show Best on the new design.
   const FRONT = /^\/(hot|best)?\/?$/;
   const FEED = /^\/user\/[\w-]+\/m\/[\w-]+/;
+  // Pages only the new design has, and share links (/r/x/s/abc), which only the new design
+  // resolves (it then redirects to the post itself, which is sent on to old Reddit).
+  const NEW_ONLY = /^\/(settings|media|chat|login|register|password|account|notifications|mod|answers|explore|t|topics|premium|coins|appeals|poll|report|avatar|achievements)(\/|$)|^\/(r|u|user)\/[^/]+\/s\//;
 
   // Storage can throw (blocked site data, some private modes); without it the script still
   // redirects, it just can't notice a turn-away or remember a feed.
@@ -67,48 +77,54 @@
     const f = read(KEY_FEED);
     return typeof f === 'string' && FEED.test(f) ? f.match(FEED)[0] : null;
   };
+  const refused = () => Date.now() - time(KEY_REFUSED) <= RETRY_MS;
 
-  // Where the front page should go now: a URL, or null to leave it alone.
-  const target = () => {
-    if (Date.now() - time(KEY_REFUSED) > RETRY_MS) return OLD_HOT;
+  // Where a page should go: a URL, or null to stay. `rest` is the query and hash.
+  const target = (path, rest = '') => {
+    if (!refused()) {
+      if (FRONT.test(path)) return OLD + '/hot' + rest;
+      return NEW_ONLY.test(path) ? null : OLD + path + rest;
+    }
+    if (!FRONT.test(path)) return null;
     const f = feed();
     return f ? f + '/hot/' : null;
   };
 
-  const go = (how, url) => {
-    if (url === OLD_HOT) write(KEY_TRIED, String(Date.now()));
+  const go = (how, url, path) => {
+    if (url.startsWith(OLD)) {
+      write(KEY_TRIED, String(Date.now()));
+      write(KEY_TRIED_PATH, path);
+    }
     location[how](url);
   };
 
-  const onPage = () => {
+  // `loaded`: a fresh page load, the only time old Reddit can have just sent you back.
+  const onPage = loaded => {
     const path = location.pathname;
     const f = path.match(FEED);
     if (f) write(KEY_FEED, f[0]);
-    if (!FRONT.test(path)) return;
-    // Sent to old Reddit moments ago and back on the front page: old Reddit turned us away.
     const now = Date.now();
-    if (now - time(KEY_TRIED) < BOUNCE_MS && now - time(KEY_REFUSED) > RETRY_MS) {
-      write(KEY_REFUSED, String(now));
+    if (loaded === true && !refused() && now - time(KEY_TRIED) < BOUNCE_MS
+      && (path === read(KEY_TRIED_PATH) || FRONT.test(path))) {
+      write(KEY_REFUSED, String(now)); // sent to old Reddit moments ago and back: turned away
     }
-    const url = target();
-    // replace() so Back skips the front page instead of landing on it and redirecting again
-    if (url) go('replace', url + (url === OLD_HOT ? location.search : ''));
+    const url = target(path, location.search + location.hash);
+    // replace() so Back skips this page instead of landing on it and redirecting again
+    if (url) go('replace', url, path);
   };
 
-  onPage();
+  onPage(true);
 
-  // Safari can load a page you're typing before you open it ("Preload Top Hit"); a redirect
-  // made then can be lost, so check again once the page is shown.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') onPage();
+    if (document.visibilityState === 'visible') onPage(); // Safari preload: see above
   });
 
   // In-app navigation (pushState) isn't seen by popstate; the Navigation API reports every
-  // same-document navigation. Targets never match FRONT, so there's no loop.
+  // same-document navigation. Targets are on old Reddit or a feed, so there's no loop.
   if (window.navigation) {
-    navigation.addEventListener('navigatesuccess', onPage);
+    navigation.addEventListener('navigatesuccess', () => onPage());
   } else {
-    window.addEventListener('popstate', onPage);
+    window.addEventListener('popstate', () => onPage());
   }
 
   // Delegation catches the logo even after SPA re-renders, and needs no
@@ -117,9 +133,9 @@
     // Leave modified and non-left clicks (new tab/window) to the browser.
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     if (!e.target.closest('#reddit-logo')) return;
-    const url = target();
+    const url = target('/');
     if (!url) return; // nothing better: Reddit's own front page
     e.preventDefault();
-    go('assign', url);
+    go('assign', url, '/');
   }, true);
 })();

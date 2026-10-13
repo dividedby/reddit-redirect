@@ -2,7 +2,7 @@
 
 ## Project
 
-A single userscript, `redditRedirect.user.js`, that sends Reddit's front page to a Hot feed and makes the logo click go there too. The new design has no Hot home feed any more, so the order is: `old.reddit.com/hot`; if old Reddit bounces the user back to the www front page within 15 s, the last custom feed they opened (`/user/<name>/m/<feed>/hot/`) for a day; else leave the page alone. State lives in www.reddit.com's localStorage (`rhr:*`). On old.reddit.com the script only points the logo (`#header-img-a`, when it links to `/`) at `/hot`. No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
+A single userscript, `redditRedirect.user.js`, that opens Reddit in old Reddit with the front page on Hot, and makes the logo click go there too. The new design has no Hot home feed any more, so: every www page goes to the same address on `old.reddit.com` (front page → `/hot`) except `NEW_ONLY` pages; if old Reddit bounces the user back to the same www page (or the front page) within 15 s, nothing is redirected for a day except the front page, which goes to the last custom feed they opened (`/user/<name>/m/<feed>/hot/`), or is left alone. State lives in www.reddit.com's localStorage (`rhr:*`). On old.reddit.com the script only sends bare `/` (where its logo points; Best when logged in) to `/hot`. No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
 
 ## Rules
 
@@ -23,8 +23,9 @@ Every **user-facing change** moves these together, in the same commit or PR:
 - `greasyfork-description.md`: the Greasy Fork listing text, with a **New in x.y** section.
   Greasy Fork only picks it up if the listing is set to sync from this repo (owner's Greasy Fork
   admin); otherwise the owner pastes it in.
-- Test on reddit.com: loading `/` lands on `old.reddit.com/hot` and Back leaves Reddit; in-app
-  navigation to `/` lands there too; Ctrl/Cmd-click on the logo opens a new tab. (Claude's
+- Test on reddit.com: loading `/` lands on `old.reddit.com/hot`, a post on the same post in old
+  Reddit, and Back leaves Reddit; bare `old.reddit.com` lands on `/hot`; in-app navigation is
+  sent on too; Ctrl/Cmd-click on the logo opens a new tab. (Claude's
   browser tool can't open reddit.com; run `node --test`, which simulates these with a fake `location`, instead.)
 
 Pushing to `main` is a release once Greasy Fork syncs from it: unfinished work goes on a branch.
