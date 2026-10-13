@@ -16,3 +16,5 @@ logo takes you to Hot too.
   Only the front page itself is redirected; every other page is left alone.
 
 Source, changelog and issues: [GitHub](https://github.com/dividedby/reddit-redirect)
+
+Find it useful? You can [send a tip via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=dividedbygit@gmail.com&item_name=Reddit+Hot+Donation). Thank you!
