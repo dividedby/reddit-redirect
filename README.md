@@ -29,8 +29,9 @@ instead of Reddit's default **Best**, and the Reddit logo takes you to Hot too.
 ## Development
 
 The script is a single file, [`redditRedirect.user.js`](redditRedirect.user.js), with no
-build step. It runs at `document-start` so the redirect happens before Reddit renders. Bump
-`@version` with every change users would notice, and add it to the
+build step and no dependencies. Tests live in [`test/`](test/): run `node --test` from
+the repo root (Node 22). It runs at `document-start` so the redirect happens before Reddit
+renders. Bump `@version` with every change users would notice, and add it to the
 [changelog](CHANGELOG.md) and [`greasyfork-description.md`](greasyfork-description.md).
 Bugs and ideas go in the [issues](https://github.com/dividedby/reddit-redirect/issues).
 

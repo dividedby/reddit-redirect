@@ -14,39 +14,39 @@
 // @grant       none
 // @noframes
 // @downloadURL https://update.greasyfork.org/scripts/508344/Reddit%20Hot%20Redirect%20with%20Logo%20Click%20Handler.user.js
-// @updateURL https://update.greasyfork.org/scripts/508344/Reddit%20Hot%20Redirect%20with%20Logo%20Click%20Handler.meta.js
+// @updateURL   https://update.greasyfork.org/scripts/508344/Reddit%20Hot%20Redirect%20with%20Logo%20Click%20Handler.meta.js
 // ==/UserScript==
 
-(function() {
-    'use strict';
+(() => {
+  'use strict';
 
-    function redirectToHot() {
-        // Automatically redirect only on homepage. replace() so Back skips the
-        // '/' entry instead of landing on it and redirecting again.
-        if (location.pathname === '/') {
-            location.replace('/hot' + location.search);
-        }
+  // Redirect only the front page. replace() so Back skips the '/' entry
+  // instead of landing on it and redirecting again.
+  const redirectToHot = () => {
+    if (location.pathname === '/') {
+      location.replace('/hot' + location.search);
     }
+  };
 
-    redirectToHot();
+  redirectToHot();
 
-    // In-app navigation to '/' (pushState) isn't seen by popstate; the Navigation
-    // API reports every same-document navigation. Once it lands on '/', replace it
-    // with /hot ('/hot' never matches, so no loop).
-    if (window.navigation) {
-        navigation.addEventListener('navigatesuccess', redirectToHot);
-    } else {
-        window.addEventListener('popstate', redirectToHot);
+  // In-app navigation to '/' (pushState) isn't seen by popstate; the Navigation
+  // API reports every same-document navigation. Once it lands on '/', replace it
+  // with /hot ('/hot' never matches, so no loop).
+  if (window.navigation) {
+    navigation.addEventListener('navigatesuccess', redirectToHot);
+  } else {
+    window.addEventListener('popstate', redirectToHot);
+  }
+
+  // Delegation catches the logo even after SPA re-renders, and needs no
+  // document.body (null at document-start).
+  document.addEventListener('click', e => {
+    // Leave modified and non-left clicks (new tab/window) to the browser.
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (e.target.closest('#reddit-logo')) {
+      e.preventDefault();
+      location.assign('/hot');
     }
-
-    // shortcut: event delegation catches the logo even after SPA re-renders —
-    // no MutationObserver, and no document.body (null at document-start) needed.
-    document.addEventListener('click', (e) => {
-        // Leave modified and non-left clicks (new tab/window) to the browser.
-        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-        if (e.target.closest('#reddit-logo')) {
-            e.preventDefault();
-            location.assign('/hot');
-        }
-    }, true);
+  }, true);
 })();

@@ -2,7 +2,7 @@
 
 ## Project
 
-A single userscript, `redditRedirect.user.js`, that sends Reddit's default front page ("best") to `/hot` and makes the logo click go there too. No build step, no tests. Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
+A single userscript, `redditRedirect.user.js`, that sends Reddit's default front page ("best") to `/hot` and makes the logo click go there too. No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
 
 ## Rules
 
@@ -25,7 +25,7 @@ Every **user-facing change** moves these together, in the same commit or PR:
   admin); otherwise the owner pastes it in.
 - Test on reddit.com: loading `/` lands on `/hot` and Back leaves Reddit; in-app
   navigation to `/` lands on `/hot`; Ctrl/Cmd-click on the logo opens a new tab. (Claude's
-  browser tool can't open reddit.com; simulate in jsdom with a fake `location` instead.)
+  browser tool can't open reddit.com; run `node --test`, which simulates these with a fake `location`, instead.)
 
 Pushing to `main` is a release once Greasy Fork syncs from it: unfinished work goes on a branch.
 
