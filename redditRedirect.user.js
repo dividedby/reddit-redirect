@@ -3,13 +3,14 @@
 // @namespace   https://greasyfork.org/en/users/594496-divided-by
 // @author      dividedby
 // @description Opens Reddit's front page on Hot: old Reddit, or your custom feed if old Reddit turns you away. The logo goes there too
-// @version     2.0
+// @version     2.1
 // @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/dividedby/reddit-redirect
 // @supportURL  https://github.com/dividedby/reddit-redirect/issues
 // @contributionURL     https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=dividedbygit@gmail.com&item_name=Reddit+Hot+Donation
 // @contributionAmount  $1
 // @match       https://www.reddit.com/*
+// @match       https://old.reddit.com/*
 // @run-at      document-start
 // @grant       none
 // @noframes
@@ -27,6 +28,17 @@
 
 (() => {
   'use strict';
+
+  // Old Reddit's logo links to the front page, which opens on Best when you're logged in:
+  // point it at Hot instead. (On a subreddit with its own header image, the logo links to
+  // the subreddit and is left alone.) Old Reddit isn't an app, so once is enough.
+  if (location.hostname === 'old.reddit.com') {
+    document.addEventListener('DOMContentLoaded', () => {
+      const logo = document.getElementById('header-img-a');
+      if (logo && new URL(logo.href, location.href).pathname === '/') logo.href = '/hot';
+    });
+    return;
+  }
 
   const OLD_HOT = 'https://old.reddit.com/hot';
   const KEY_TRIED = 'rhr:oldTried';     // when we last sent you to old Reddit (ms)

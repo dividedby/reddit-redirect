@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- On old Reddit, the logo goes to Hot too (it opened the front page, which shows Best when
+  you're logged in). A subreddit's own header logo still goes to that subreddit.
+
 ## [2.0] - 2026-10-13
 
 ### Changed

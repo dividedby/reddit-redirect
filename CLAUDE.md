@@ -2,7 +2,7 @@
 
 ## Project
 
-A single userscript, `redditRedirect.user.js`, that sends Reddit's front page to a Hot feed and makes the logo click go there too. The new design has no Hot home feed any more, so the order is: `old.reddit.com/hot`; if old Reddit bounces the user back to the www front page within 15 s, the last custom feed they opened (`/user/<name>/m/<feed>/hot/`) for a day; else leave the page alone. State lives in www.reddit.com's localStorage (`rhr:*`). No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
+A single userscript, `redditRedirect.user.js`, that sends Reddit's front page to a Hot feed and makes the logo click go there too. The new design has no Hot home feed any more, so the order is: `old.reddit.com/hot`; if old Reddit bounces the user back to the www front page within 15 s, the last custom feed they opened (`/user/<name>/m/<feed>/hot/`) for a day; else leave the page alone. State lives in www.reddit.com's localStorage (`rhr:*`). On old.reddit.com the script only points the logo (`#header-img-a`, when it links to `/`) at `/hot`. No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
 
 ## Rules
 

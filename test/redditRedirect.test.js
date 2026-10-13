@@ -10,10 +10,10 @@ const src = fs.readFileSync(path.join(__dirname, '..', 'redditRedirect.user.js')
 // Loads the script at `pathname`; `withNavigation: false` simulates a browser without
 // the Navigation API, `store` is localStorage's contents (shared between loads to simulate
 // later page loads), `now` the clock. Returns the fakes so tests can fire events and read calls.
-const load = (pathname, { search = '', withNavigation = true, store = {}, now = 1e12, noStorage = false } = {}) => {
+const load = (pathname, { search = '', withNavigation = true, store = {}, now = 1e12, noStorage = false, hostname = 'www.reddit.com', logo = null } = {}) => {
   const calls = { replace: [], assign: [] };
   const location = {
-    pathname, search, hostname: 'www.reddit.com',
+    pathname, search, hostname, href: `https://${hostname}${pathname}${search}`,
     replace: url => calls.replace.push(url),
     assign: url => calls.assign.push(url),
   };
@@ -21,7 +21,8 @@ const load = (pathname, { search = '', withNavigation = true, store = {}, now = 
   const winListeners = {};
   const navListeners = {};
   const on = l => (type, fn, capture) => { (l[type] ||= []).push({ fn, capture }); };
-  const document = { addEventListener: on(docListeners), visibilityState: 'visible' };
+  const document = { addEventListener: on(docListeners), visibilityState: 'visible',
+    getElementById: id => (id === 'header-img-a' ? logo : null) };
   const navigation = withNavigation ? { addEventListener: on(navListeners) } : undefined;
   const window = { addEventListener: on(winListeners), navigation };
   const deny = () => { throw new Error('SecurityError'); };
@@ -189,4 +190,25 @@ test('a front page loaded in the background is checked again when shown (Safari 
   t.document.visibilityState = 'visible';
   fire(t.docListeners, 'visibilitychange');
   assert.deepEqual(t.calls.replace, [OLD]);
+});
+
+test('old Reddit: the logo is pointed at Hot once the page is parsed', () => {
+  const logo = { href: 'https://old.reddit.com/' };
+  const t = load('/r/x/comments/abc/title/', { hostname: 'old.reddit.com', logo });
+  assert.equal(logo.href, 'https://old.reddit.com/');
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.equal(logo.href, '/hot');
+  // nothing else: no redirect, no logo click handler, no history listeners
+  assert.deepEqual(t.calls, { replace: [], assign: [] });
+  assert.equal(t.docListeners.click, undefined);
+  assert.equal(t.navListeners.navigatesuccess, undefined);
+});
+
+test('old Reddit: the front page itself and a subreddit\'s own logo are left alone', () => {
+  assert.deepEqual(load('/', { hostname: 'old.reddit.com' }).calls.replace, []);
+  const logo = { href: 'https://old.reddit.com/r/x/' };
+  const t = load('/r/x/', { hostname: 'old.reddit.com', logo });
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.equal(logo.href, 'https://old.reddit.com/r/x/');
+  fire(load('/', { hostname: 'old.reddit.com' }).docListeners, 'DOMContentLoaded'); // no logo: no error
 });

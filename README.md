@@ -23,7 +23,8 @@ turns you away, it falls back to your custom feed sorted by Hot.
   Hot as well.
 - **Back still works:** the redirect replaces the front page in your history instead of
   adding a step, so Back takes you to where you were before Reddit.
-- A plain click on the Reddit logo goes to the same place. Ctrl/Cmd-click and middle-click are left
+- A plain click on the Reddit logo goes to the same place. On old Reddit, the logo goes
+  to Hot too (a subreddit's own header logo still goes to that subreddit). Ctrl/Cmd-click and middle-click are left
   to your browser (open in a new tab as usual).
 - Only the front page itself is redirected; every other page (subreddits, posts, your
   custom feeds) is left alone. Nothing is sent anywhere: the remembered feed and the

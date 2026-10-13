@@ -1,6 +1,10 @@
 The Reddit front page opens on **Hot** instead of Reddit's default **Best**, and the Reddit
 logo takes you to Hot too.
 
+**New in 2.1**
+
+- On old Reddit, the logo goes to Hot too, instead of the front page's Best.
+
 **New in 2.0**
 
 Reddit's new design dropped the Hot front page (only Best and New are left), so:
