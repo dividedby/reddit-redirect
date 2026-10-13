@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Every `www.reddit.com` page now opens at the same address on old Reddit, except pages
+  only the new design has (settings, chat, notifications, the image viewer, mod tools,
+  log-in pages, share links). If old Reddit turns you away, pages stay where they are.
+- Bare `old.reddit.com`, where old Reddit's logo goes, now opens on Hot: old Reddit's
+  front page shows Best when you're logged in.
+
 ## [2.0] - 2026-10-13
 
 ### Changed

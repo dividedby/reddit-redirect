@@ -1,5 +1,12 @@
-The Reddit front page opens on **Hot** instead of Reddit's default **Best**, and the Reddit
-logo takes you to Hot too.
+Reddit opens in **old Reddit**, with the front page on **Hot** instead of Reddit's default
+**Best**, and the Reddit logo takes you to Hot too.
+
+**New in 2.1**
+
+- **Every Reddit page opens in old Reddit**: posts, subreddits, profiles, search. A few
+  pages only the new design has stay there (settings, chat, notifications, the image
+  viewer, mod tools, share links).
+- Bare `old.reddit.com` (where old Reddit's logo goes) opens on Hot too, instead of Best.
 
 **New in 2.0**
 
@@ -8,16 +15,17 @@ Reddit's new design dropped the Hot front page (only Best and New are left), so:
 - The front page and the logo now take you to **old Reddit's Hot** (`old.reddit.com/hot`).
   Old Reddit needs you to be logged in.
 - **If old Reddit turns you away** (Reddit is limiting it to people who have used it in the
-  last six months), they go to your **custom feed sorted by Hot** instead: the custom feed
-  you last opened. Old Reddit is tried again after a day.
-- With neither, the front page is left as Reddit shows it.
+  last six months), pages stay on the new design and the front page goes to your **custom
+  feed sorted by Hot**: the custom feed you last opened. Old Reddit is tried again after a
+  day. With no custom feed, the front page is left as Reddit shows it.
 
 **How it works**
 
-- Opening `reddit.com/` (or `/hot`, `/best`) redirects before the page draws. Only the
-  front page is redirected; every other page is left alone.
-- Back still works: the redirect replaces the front page in your history.
+- Redirects happen before the page draws, and Back still works: the redirect replaces the
+  page in your history.
 - Ctrl/Cmd-click and middle-click on the logo are left to your browser.
+- In the Userscripts app (Safari), allow the script on both `www.reddit.com` and
+  `old.reddit.com`.
 
 Source, changelog and issues: [GitHub](https://github.com/dividedby/reddit-redirect)
 
