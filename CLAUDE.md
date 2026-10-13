@@ -18,7 +18,7 @@ Every **user-facing change** moves these together, in the same commit or PR:
 
 - the script's `@version` (keep its `x.y` numbering);
 - `CHANGELOG.md`: an entry under `## [Unreleased]`, rolled into a dated version section at
-  release (see `docs/agents/changelog-guideline.md` in General-URL-Cleaner-Revived for the style);
+  release (style: `docs/agents/changelog-guideline.md`);
 - `README.md` when what a user sees or does changes;
 - `greasyfork-description.md`: the Greasy Fork listing text, with a **New in x.y** section.
   Greasy Fork only picks it up if the listing is set to sync from this repo (owner's Greasy Fork
@@ -67,7 +67,19 @@ State: `needs-triage`, `ready-for-agent`, `ready-for-human`, `blocked`, `wontfix
 ### Domain docs
 Single-context: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
 
+### Changelog
+See `docs/agents/changelog-guideline.md`.
+
 ## Intake convention
 
-When I say **"file an issue"** — or hand you a **plainly-scoped bug** — file a
-`needs-triage` issue directly via `gh`.
+When I say **"file an idea"** or **"file an issue"** (unqualified), append an
+**enriched row** to this repo's [**Idea Inbox**](https://github.com/dividedby/reddit-redirect/issues/16) issue (label
+`idea-inbox`, one per repo): the raw idea **plus the ambient context/links
+available right now** — the source file/issue/PR that prompted it and a sentence
+of why — as an unchecked item at the TOP of `## Ideas`. Do not grill or scope it
+yet; that happens at drain. The capture and drain protocol lives once in
+[`docs/agents/idea-inbox.md`](./docs/agents/idea-inbox.md) (the issue body is
+human-facing and carries no operating instructions).
+
+When I say **"file a *tracked* issue"** — or hand you a **plainly-scoped bug** —
+skip the Inbox and file a `needs-triage` issue directly via `gh`.
