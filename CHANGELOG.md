@@ -8,9 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+## [2.0] - 2026-10-13
+
 ### Changed
 
-- Internal: code brought to the shared style, and tests added. No behavior change.
+- The front page (`/`, `/hot`, `/best`) and the logo now go to old Reddit's Hot
+  (`old.reddit.com/hot`): Reddit's new design no longer has a Hot front page, so `/hot`
+  showed Best.
+- If old Reddit sends you back to the new design, they go to the custom feed you last
+  opened, sorted by Hot, for a day; with no custom feed, the front page is left alone.
+- In Safari, a front page preloaded while you type the address is redirected once it's shown.
+- Internal: code brought to the shared style, and tests added.
 
 ## [1.6] - 2026-10-13
 

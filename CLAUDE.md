@@ -2,7 +2,7 @@
 
 ## Project
 
-A single userscript, `redditRedirect.user.js`, that sends Reddit's default front page ("best") to `/hot` and makes the logo click go there too. No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
+A single userscript, `redditRedirect.user.js`, that sends Reddit's front page to a Hot feed and makes the logo click go there too. The new design has no Hot home feed any more, so the order is: `old.reddit.com/hot`; if old Reddit bounces the user back to the www front page within 15 s, the last custom feed they opened (`/user/<name>/m/<feed>/hot/`) for a day; else leave the page alone. State lives in www.reddit.com's localStorage (`rhr:*`). No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
 
 ## Rules
 
@@ -23,8 +23,8 @@ Every **user-facing change** moves these together, in the same commit or PR:
 - `greasyfork-description.md`: the Greasy Fork listing text, with a **New in x.y** section.
   Greasy Fork only picks it up if the listing is set to sync from this repo (owner's Greasy Fork
   admin); otherwise the owner pastes it in.
-- Test on reddit.com: loading `/` lands on `/hot` and Back leaves Reddit; in-app
-  navigation to `/` lands on `/hot`; Ctrl/Cmd-click on the logo opens a new tab. (Claude's
+- Test on reddit.com: loading `/` lands on `old.reddit.com/hot` and Back leaves Reddit; in-app
+  navigation to `/` lands there too; Ctrl/Cmd-click on the logo opens a new tab. (Claude's
   browser tool can't open reddit.com; run `node --test`, which simulates these with a fake `location`, instead.)
 
 Pushing to `main` is a release once Greasy Fork syncs from it: unfinished work goes on a branch.
