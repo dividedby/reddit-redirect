@@ -2,7 +2,7 @@
 
 ## Project
 
-A single userscript, `redditRedirect.user.js`, that opens Reddit in old Reddit with the front page on Hot, and makes the logo click go there too. The new design has no Hot home feed any more, so: every www page goes to the same address on `old.reddit.com` (front page → `/hot`) except `NEW_ONLY` pages; if old Reddit bounces the user back to the same www page (or the front page) within 15 s, nothing is redirected for a day except the front page, which goes to the last custom feed they opened (`/user/<name>/m/<feed>/hot/`), or is left alone. State lives in www.reddit.com's localStorage (`rhr:*`). On old.reddit.com the script only sends bare `/` (where its logo points; Best when logged in) to `/hot`. No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
+A single userscript, `redditRedirect.user.js`, that opens Reddit in old Reddit with the front page on Hot, and makes the logo click go there too. The new design has no Hot home feed any more and has removed r/all, so: feeds (`OLD_FEED`: front page and its sorts, `r/all`, `r/popular`, `r/a+b`, custom feeds) go to the same address on `old.reddit.com` (front page → `/hot`); a bare subreddit (`/r/x`) goes to `/r/x/hot/` on the new design; everything else stays on the new design. If old Reddit bounces the user back to the same www page (or the front page) within 15 s, feeds stay for a day except the front page, which goes to the last custom feed they opened (`/user/<name>/m/<feed>/hot/`), or is left alone. State lives in www.reddit.com's localStorage (`rhr:*`). On old.reddit.com the script sends bare `/` (where its logo points; Best when logged in) to `/hot`, and points clicked links to posts, subreddits and profiles at the new design. No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
 
 ## Rules
 
@@ -23,9 +23,10 @@ Every **user-facing change** moves these together, in the same commit or PR:
 - `greasyfork-description.md`: the Greasy Fork listing text, with a **New in x.y** section.
   Greasy Fork only picks it up if the listing is set to sync from this repo (owner's Greasy Fork
   admin); otherwise the owner pastes it in.
-- Test on reddit.com: loading `/` lands on `old.reddit.com/hot`, a post on the same post in old
-  Reddit, and Back leaves Reddit; bare `old.reddit.com` lands on `/hot`; in-app navigation is
-  sent on too; Ctrl/Cmd-click on the logo opens a new tab. (Claude's
+- Test on reddit.com: loading `/` lands on `old.reddit.com/hot`, `/r/popular` on old Reddit, `/r/x`
+  on `/r/x/hot/` in the new design, a post stays in the new design, and Back leaves Reddit; bare
+  `old.reddit.com` lands on `/hot`; a post link on old Reddit (plain and Ctrl/Cmd-click) opens in
+  the new design; in-app navigation is sent on too; Ctrl/Cmd-click on the logo opens a new tab. (Claude's
   browser tool can't open reddit.com; run `node --test`, which simulates these with a fake `location`, instead.)
 
 Pushing to `main` is a release once Greasy Fork syncs from it: unfinished work goes on a branch.

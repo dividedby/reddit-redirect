@@ -1,30 +1,36 @@
 # Reddit Hot Redirect with Logo Click Handler
 
-A userscript for [reddit.com](https://www.reddit.com): Reddit opens in
+A userscript for [reddit.com](https://www.reddit.com): Reddit's feeds open in
 [old Reddit](https://old.reddit.com), with the front page on **Hot** instead of Reddit's
-default **Best**, and the Reddit logo takes you to Hot too.
+default **Best**, and the Reddit logo takes you to Hot too. Posts and subreddits open in
+Reddit's new design, with subreddits on **Hot**.
 
-Reddit's new design no longer has a Hot front page (only Best and New), and old Reddit's
-front page shows Best when you're logged in. If old Reddit turns you away, you stay on
-the new design and the front page falls back to your custom feed sorted by Hot.
+Reddit's new design has no Hot front page any more (only Best), has removed `r/all`, and
+sorts `r/popular` unreliably; old Reddit's front page shows Best when you're logged in.
+The new design shows posts and subreddits fine, but starts every subreddit on Best. If old
+Reddit turns you away, you stay on the new design and the front page falls back to your
+custom feed sorted by Hot.
 
 **Install:** [Greasy Fork](https://greasyfork.org/en/scripts/508344) · [Changelog](CHANGELOG.md)
 
 ## How it works
 
-- Every `www.reddit.com` page opens at the same address on `old.reddit.com`, before the
-  page draws: posts, subreddits, profiles, search. Old Reddit needs you to be logged in.
+- **Feeds open in old Reddit**, before the page draws: the front page, `r/all`,
+  `r/popular`, combined subreddits (`r/a+b`) and custom feeds. Old Reddit needs you to be
+  logged in.
 - The front page (`reddit.com/`, `/hot`, `/best`, and bare `old.reddit.com`) goes to
   `old.reddit.com/hot`. Anything after the address (like `?feed=home`) is kept.
-- A few pages only the new design has stay there: settings, chat, notifications, the
-  image viewer, mod tools, log-in pages and share links (`/r/…/s/…`; once Reddit opens
-  the post they point to, it's sent on to old Reddit).
+- **Subreddits open in the new design, sorted by Hot** (`/r/<name>/hot/`). A subreddit you
+  open with a sort already chosen (`/r/<name>/new/`) is left as it is.
+- **Posts, profiles, search and every other page stay in the new design.** On old Reddit,
+  links to posts, subreddits and profiles open in the new design too, also with
+  Ctrl/Cmd-click, middle-click and "Open in New Tab".
 - **If old Reddit sends you back** to the new design (Reddit is limiting it to people who
-  have used it in the last six months), pages stay on the new design and the front page
+  have used it in the last six months), feeds stay on the new design and the front page
   goes to your **custom feed** sorted by Hot: the custom feed you last opened. Old Reddit
   is tried again after a day. With no custom feed, the front page is left as Reddit shows it.
-- Moving around inside the new design (the Home link, a post, the Back button) is sent on
-  the same way.
+- Moving around inside the new design (the Home link, a subreddit, the Back button) is
+  sent on the same way.
 - **Back still works:** the redirect replaces the page in your history instead of adding
   a step.
 - A plain click on the Reddit logo goes to Hot. Ctrl/Cmd-click and middle-click are left

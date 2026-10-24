@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Only Reddit's feeds open in old Reddit now: the front page (on Hot), `r/all`, `r/popular`,
+  combined subreddits (`r/a+b`) and custom feeds. Posts, subreddits, profiles, search and
+  every other page stay on Reddit's new design. Reddit's new design has removed `r/all`,
+  sorts `r/popular` unreliably and still has no Hot front page, but it shows posts and
+  subreddits fine.
+- A subreddit opens sorted by Hot (`/r/<name>/hot/`): the new design starts every visit on
+  Best and doesn't remember Hot.
+- On old Reddit, links to posts, subreddits and profiles open in the new design (subreddits
+  on Hot). This also applies to Ctrl/Cmd-click, middle-click and "Open in New Tab".
+- If old Reddit turns you away, `r/all`, `r/popular` and custom feeds stay on the new design.
+
+## [2.1] - 2026-10-13
+
 ### Added
 
 - Every `www.reddit.com` page now opens at the same address on old Reddit, except pages

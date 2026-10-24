@@ -47,6 +47,7 @@ const clickEvent = (onLogo, mods = {}) => {
     button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, ...mods,
     prevented: false,
     target: { closest: sel => (onLogo && sel === '#reddit-logo' ? {} : null) },
+    composedPath: () => [],
     preventDefault() { e.prevented = true; },
     stopPropagation() {},
   };
@@ -54,6 +55,22 @@ const clickEvent = (onLogo, mods = {}) => {
 };
 
 const POST = '/r/x/comments/abc/title/';
+const FEEDS = ['/new', '/top/', '/r/all', '/r/all/', '/r/All-pics-funny/top/', '/r/popular/',
+  '/r/popular/rising', '/r/a+b/', '/r/a+b+c/new/', '/user/a/m/b/hot/', '/user/Some_one/m/my-feed'];
+
+// A link at `href` (resolved against `base`), and a click on it as the browser sends it.
+const linkClick = (href, base = 'https://old.reddit.com/hot') => {
+  const u = new URL(href, base);
+  const a = { localName: 'a', hostname: u.hostname, pathname: u.pathname, search: u.search, hash: u.hash };
+  Object.defineProperty(a, 'href', {
+    get: () => u.href,
+    set: v => { a.set = v; },
+    enumerable: true,
+  });
+  const e = clickEvent(false);
+  e.composedPath = () => [{ localName: 'span' }, a, { localName: 'div' }];
+  return { a, e };
+};
 
 test('the front page opens on old Reddit\'s Hot, keeping the query and hash', () => {
   assert.deepEqual(load('/').calls.replace, [HOT]);
@@ -61,31 +78,36 @@ test('the front page opens on old Reddit\'s Hot, keeping the query and hash', ()
   for (const p of ['/hot', '/hot/', '/best', '/best/']) assert.deepEqual(load(p).calls.replace, [HOT]);
 });
 
-test('every other page opens on old Reddit at the same address', () => {
-  for (const p of [POST, '/r/x', '/new', '/user/a', '/user/a/m/b/hot/', '/search', '/submit', '/r/xs/']) {
-    assert.deepEqual(load(p).calls.replace, [OLD + p], p);
-  }
-  assert.deepEqual(load('/search', { search: '?q=cats', hash: '#x' }).calls.replace, [OLD + '/search?q=cats#x']);
+test('feeds open on old Reddit at the same address', () => {
+  for (const p of FEEDS) assert.deepEqual(load(p).calls.replace, [OLD + p], p);
+  assert.deepEqual(load('/r/popular/', { search: '?geo_filter=GLOBAL', hash: '#x' }).calls.replace,
+    [OLD + '/r/popular/?geo_filter=GLOBAL#x']);
 });
 
-test('pages only the new design has stay', () => {
-  for (const p of ['/settings', '/settings/account', '/media', '/chat', '/login', '/notifications',
-    '/mod/x/queue', '/r/x/s/AbC123', '/u/a/s/AbC123', '/explore', '/t/football']) {
+test('a subreddit opens sorted by Hot on the new design', () => {
+  for (const p of ['/r/x', '/r/x/', '/r/Some_Sub2/', '/r/allergies', '/r/popularity/']) {
+    assert.deepEqual(load(p).calls.replace, [p.replace(/\/?$/, '/hot/')], p);
+  }
+  assert.deepEqual(load('/r/x', { search: '?f=y', hash: '#z' }).calls.replace, ['/r/x/hot/?f=y#z']);
+});
+
+test('posts, sorted subreddits and every other page stay on the new design', () => {
+  for (const p of [POST, '/r/x/hot/', '/r/x/new', '/r/x/top/', '/r/x/wiki', '/r/allergies/new/',
+    '/user/a', '/u/a/', '/search', '/submit', '/settings',
+    '/chat', '/media', '/r/x/s/AbC123', '/message/inbox', '/prefs']) {
     assert.deepEqual(load(p).calls, { replace: [], assign: [] }, p);
   }
 });
 
-test('in-app navigation is sent on to old Reddit (Navigation API)', () => {
+test('in-app navigation is sent on the same way (Navigation API)', () => {
   const t = load('/settings');
   assert.equal(t.navListeners.navigatesuccess.length, 1);
   assert.equal(t.winListeners.popstate, undefined);
-  t.location.pathname = '/';
-  fire(t.navListeners, 'navigatesuccess');
-  t.location.pathname = POST;
-  fire(t.navListeners, 'navigatesuccess');
-  t.location.pathname = '/chat';
-  fire(t.navListeners, 'navigatesuccess');
-  assert.deepEqual(t.calls.replace, [HOT, OLD + POST]);
+  for (const p of ['/', POST, '/r/popular/', '/r/x', '/r/x/hot/', '/chat']) {
+    t.location.pathname = p;
+    fire(t.navListeners, 'navigatesuccess');
+  }
+  assert.deepEqual(t.calls.replace, [HOT, OLD + '/r/popular/', '/r/x/hot/']);
 });
 
 test('without the Navigation API, popstate is used instead', () => {
@@ -98,8 +120,8 @@ test('without the Navigation API, popstate is used instead', () => {
 
 test('a plain click on the logo goes to old Reddit\'s Hot', () => {
   const t = load('/settings');
-  assert.equal(t.docListeners.click.length, 1);
-  assert.equal(t.docListeners.click[0].capture, true);
+  assert.equal(t.docListeners.click.length, 2);
+  assert.ok(t.docListeners.click.every(l => l.capture === true));
   const e = clickEvent(true);
   fire(t.docListeners, 'click', e);
   assert.equal(e.prevented, true);
@@ -134,16 +156,18 @@ test('turned away from the front page with no custom feed: everything stays', ()
   const e = clickEvent(true);
   fire(t.docListeners, 'click', e);
   assert.equal(e.prevented, false);
-  assert.deepEqual(load(POST, { store, now: 1e12 + 5000 }).calls.replace, []);
+  assert.deepEqual(load('/r/popular/', { store, now: 1e12 + 5000 }).calls.replace, []);
+  assert.deepEqual(load('/r/x', { store, now: 1e12 + 6000 }).calls.replace, ['/r/x/hot/']);
 });
 
-test('turned away from a post: it stays, and the front page uses the last custom feed', () => {
+test('turned away from a feed: it stays, and the front page uses the last custom feed', () => {
   const store = {};
   assert.deepEqual(load('/user/Some_one/m/my-feed/new/', { store }).calls.replace,
     [OLD + '/user/Some_one/m/my-feed/new/']); // remembered on the way through
   assert.equal(store['rhr:feed'], '/user/Some_one/m/my-feed');
-  load(POST, { store, now: 1e12 });
-  assert.deepEqual(load(POST, { store, now: 1e12 + 3000 }).calls.replace, []);
+  load('/r/popular/', { store, now: 1e12 });
+  assert.deepEqual(load('/r/popular/', { store, now: 1e12 + 3000 }).calls.replace, []);
+  assert.deepEqual(load('/user/Some_one/m/my-feed/hot/', { store, now: 1e12 + 4000 }).calls.replace, []);
   const t = load('/', { store, now: 1e12 + DAY / 2 });
   assert.deepEqual(t.calls.replace, ['/user/Some_one/m/my-feed/hot/']);
   const e = clickEvent(true);
@@ -155,18 +179,19 @@ test('old Reddit is tried again a day after a turn-away', () => {
   const store = {};
   load('/', { store, now: 1e12 });
   load('/', { store, now: 1e12 + 3000 });
-  assert.deepEqual(load(POST, { store, now: 1e12 + 3000 + DAY + 1 }).calls.replace, [OLD + POST]);
+  assert.deepEqual(load('/r/all', { store, now: 1e12 + 3000 + DAY + 1 }).calls.replace, [OLD + '/r/all']);
 });
 
 test('other pages soon after, or the same page later, are not a turn-away', () => {
   const store = {};
-  load(POST, { store, now: 1e12 });
-  load('/media', { store, now: 1e12 + 2000 }); // e.g. an image link on old Reddit
+  load('/r/popular/', { store, now: 1e12 });
+  load(POST, { store, now: 1e12 + 2000 }); // a post opened from old Reddit
   load('/r/y', { store, now: 1e12 + 4000 });
   assert.equal(store['rhr:oldRefused'], undefined);
-  load(POST, { store, now: 1e12 });
-  assert.deepEqual(load(POST, { store, now: 1e12 + 60e3 }).calls.replace, [OLD + POST]);
-  assert.equal(store['rhr:oldRefused'], undefined);
+  const later = {};
+  load('/r/popular/', { store: later, now: 1e12 });
+  assert.deepEqual(load('/r/popular/', { store: later, now: 1e12 + 60e3 }).calls.replace, [OLD + '/r/popular/']);
+  assert.equal(later['rhr:oldRefused'], undefined);
 });
 
 test('bad stored values are ignored', () => {
@@ -178,7 +203,8 @@ test('bad stored values are ignored', () => {
 
 test('without storage the redirect still works', () => {
   assert.deepEqual(load('/', { noStorage: true }).calls.replace, [HOT]);
-  assert.deepEqual(load(POST, { noStorage: true }).calls.replace, [OLD + POST]);
+  assert.deepEqual(load('/r/all', { noStorage: true }).calls.replace, [OLD + '/r/all']);
+  assert.deepEqual(load('/r/x', { noStorage: true }).calls.replace, ['/r/x/hot/']);
 });
 
 test('a page loaded in the background is checked again when shown (Safari preload)', () => {
@@ -195,7 +221,7 @@ test('a page loaded in the background is checked again when shown (Safari preloa
   assert.equal(store['rhr:oldRefused'], undefined);
 });
 
-test('old Reddit: the bare front page goes to Hot, nothing else is touched', () => {
+test('old Reddit: the bare front page goes to Hot, no page is redirected', () => {
   const old = { hostname: 'old.reddit.com' };
   assert.deepEqual(load('/', old).calls.replace, ['/hot']);
   assert.deepEqual(load('/', { ...old, search: '?count=25', hash: '#t' }).calls.replace, ['/hot?count=25#t']);
@@ -203,9 +229,60 @@ test('old Reddit: the bare front page goes to Hot, nothing else is touched', () 
   const store = {};
   const t = load(POST, { ...old, store });
   assert.deepEqual(store, {});
-  assert.equal(t.docListeners.click, undefined);
   assert.equal(t.navListeners.navigatesuccess, undefined);
   t.location.pathname = '/';
   fire(t.docListeners, 'visibilitychange');
   assert.deepEqual(t.calls.replace, ['/hot']);
+});
+
+test('old Reddit: links to posts, subreddits and profiles open on the new design', () => {
+  const t = load('/hot', { hostname: 'old.reddit.com' });
+  for (const type of ['click', 'auxclick', 'contextmenu']) {
+    assert.equal(t.docListeners[type].length, 1, type);
+    assert.equal(t.docListeners[type][0].capture, true, type);
+  }
+  const cases = [
+    [POST + '?context=3#c', 'https://www.reddit.com' + POST + '?context=3#c'],
+    ['https://old.reddit.com/r/x/', 'https://www.reddit.com/r/x/hot/'],
+    ['/r/Sub_2', 'https://www.reddit.com/r/Sub_2/hot/'],
+    ['/r/x/new/', 'https://www.reddit.com/r/x/new/'],
+    ['/user/a', 'https://www.reddit.com/user/a'],
+    ['/u/a/comments/', 'https://www.reddit.com/u/a/comments/'],
+  ];
+  for (const type of ['click', 'auxclick', 'contextmenu']) {
+    for (const [href, want] of cases) {
+      const { a, e } = linkClick(href);
+      fire(t.docListeners, type, e);
+      assert.equal(a.set, want, `${type} ${href}`);
+      assert.equal(e.prevented, false); // the browser follows the link as usual
+    }
+  }
+});
+
+test('old Reddit: feed, other-site and other-page links are left alone', () => {
+  const t = load('/hot', { hostname: 'old.reddit.com' });
+  for (const href of [...FEEDS, '/', '/hot?count=25&after=t3_x', '/prefs', '/message/inbox',
+    '/submit', '/search?q=x', 'https://example.com/r/x/', 'https://www.reddit.com/r/x/', 'https://i.redd.it/a.jpg']) {
+    const { a, e } = linkClick(href);
+    fire(t.docListeners, 'click', e);
+    assert.equal(a.set, undefined, href);
+  }
+  const e = clickEvent(false); // a click that isn't on a link
+  e.composedPath = () => [{ localName: 'div' }];
+  fire(t.docListeners, 'click', e);
+});
+
+test('new design: subreddit links get Hot before Reddit follows them', () => {
+  const t = load(POST);
+  const base = 'https://www.reddit.com/';
+  for (const [href, want] of [['/r/x/', '/r/x/hot/'], ['https://www.reddit.com/r/x', '/r/x/hot/']]) {
+    const { a, e } = linkClick(href, base);
+    fire(t.docListeners, 'auxclick', e);
+    assert.equal(a.set, want, href);
+  }
+  for (const href of [POST, '/r/x/new/', '/r/popular/', '/', 'https://old.reddit.com/r/x/']) {
+    const { a, e } = linkClick(href, base);
+    fire(t.docListeners, 'click', e);
+    assert.equal(a.set, undefined, href);
+  }
 });
