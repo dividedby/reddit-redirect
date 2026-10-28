@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+## [2.2] - 2026-10-28
+
 ### Changed
 
 - Only Reddit's feeds open in old Reddit now: the front page (on Hot), `r/all`, `r/popular`,
