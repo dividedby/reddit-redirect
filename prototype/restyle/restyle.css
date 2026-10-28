@@ -110,6 +110,9 @@ html.rr .linkflairlabel {
   background: var(--chip); color: var(--text); font: 600 12px/18px var(--font); vertical-align: middle;
   max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* A subreddit's colored flair says which text color goes on it, whatever our theme. */
+html.rr .linkflairlabel.flaircolorlight { color: #fff; }
+html.rr .linkflairlabel.flaircolordark { color: #0f1a1c; }
 
 .rr-media {
   display: flex; justify-content: center; margin: 8px 0 4px; border-radius: 16px; overflow: hidden;
