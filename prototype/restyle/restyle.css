@@ -1,0 +1,209 @@
+/* Prototype of the feed restyle (old Reddit feed pages). Scoped to html.rr. */
+html.rr {
+  --bg: #fff; --surface: #fff; --hover: #f6f8f9; --text: #0f1a1c; --muted: #5c6c74;
+  --line: #e5ebee; --pill: #eaedef; --pill-hover: #dbe0e3; --chip: #eaedef;
+  --up: #d93a00; --down: #6a5cff; --link: #0a449b; --accent: #ff4500; --focus: #115bca;
+  --font: "Reddit Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  html.rr {
+    --bg: #0b1416; --surface: #0b1416; --hover: #131f23; --text: #eef1f3; --muted: #8ba2ad;
+    --line: #223237; --pill: #1a282d; --pill-hover: #24353b; --chip: #1a282d;
+    --up: #ff5700; --down: #8c82ff; --link: #6fa8ff;
+    color-scheme: dark;
+  }
+}
+
+html.rr, html.rr body { background: var(--bg); color: var(--text); font-family: var(--font); }
+html.rr body { margin: 0; font-size: 14px; }
+html.rr a { color: inherit; }
+html.rr :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Reddit's own header is replaced by #rr-bar; its pieces we still need were moved out. */
+html.rr #header, html.rr .side, html.rr .footer-parent, html.rr .rank,
+html.rr #siteTable > .thing > .parent, html.rr #siteTable > .thing > .child,
+html.rr .tagline, html.rr .expando-button, html.rr .domain, html.rr .promotedlink,
+html.rr .listingsignupbar, html.rr .infobar { display: none !important; }
+
+/* ---------- app bar ---------- */
+#rr-bar {
+  position: sticky; top: 0; z-index: 50; background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.rr-bar-top { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; }
+.rr-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; flex: none; }
+.rr-logo-mark {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+  -webkit-mask: none; position: relative;
+}
+.rr-logo-mark::after { /* a simple snoo-ish face */
+  content: ""; position: absolute; inset: 9px 7px 8px; border-radius: 50%; background: #fff;
+}
+.rr-logo-word { font-weight: 800; font-size: 22px; letter-spacing: -.04em; color: var(--accent); }
+.rr-feeds, .rr-sorts { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.rr-feeds::-webkit-scrollbar, .rr-sorts::-webkit-scrollbar { display: none; }
+.rr-feeds { flex: 1; justify-content: center; }
+.rr-chip {
+  flex: none; display: inline-flex; align-items: center; height: 32px; padding: 0 14px;
+  border-radius: 999px; font: 600 14px var(--font); text-decoration: none; color: var(--muted);
+}
+.rr-chip:hover { background: var(--hover); color: var(--text); }
+.rr-chip[aria-current="page"] { background: var(--chip); color: var(--text); }
+.rr-actions { display: flex; align-items: center; gap: 4px; flex: none; }
+.rr-icon, .rr-me {
+  position: relative; display: grid; place-items: center; width: 40px; height: 40px;
+  border-radius: 50%; color: var(--text);
+}
+.rr-icon:hover { background: var(--hover); }
+.rr-icon svg { width: 20px; height: 20px; fill: currentColor; }
+.rr-dot::after {
+  content: ""; position: absolute; top: 8px; right: 8px; width: 9px; height: 9px;
+  border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface);
+}
+.rr-me .rr-avatar { width: 32px; height: 32px; font-size: 14px; }
+.rr-sorts { padding: 0 12px 8px; }
+.rr-sorts .rr-chip { height: 30px; padding: 0 12px; font-size: 13px; }
+
+/* ---------- avatars ---------- */
+.rr-avatar {
+  flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px;
+  border-radius: 50%; background: hsl(var(--h) 62% 46%); color: #fff;
+  font: 700 12px/1 var(--font);
+}
+
+/* ---------- feed ---------- */
+html.rr .content { margin: 0 auto; padding: 0; max-width: 756px; float: none; width: auto; }
+html.rr .content > .spacer, html.rr #siteTable { margin: 0; padding: 0; }
+html.rr #siteTable > .clearleft { display: none; }
+html.rr #siteTable > .thing {
+  position: relative; display: flex; gap: 12px; margin: 0; padding: 10px 16px 6px;
+  flex-wrap: wrap; background: transparent; border: 0; border-bottom: 1px solid var(--line);
+  overflow: visible;
+}
+html.rr #siteTable > .thing > .rr-actions-row, html.rr #siteTable > .thing > .rr-menu { order: 3; flex: 1 0 100%; }
+html.rr #siteTable > .thing:hover { background: var(--hover); }
+html.rr #siteTable > .thing > .entry { order: 1; flex: 1; min-width: 0; margin: 0; overflow: visible; }
+html.rr #siteTable > .thing > .thumbnail {
+  order: 2; position: relative; flex: none; float: none; width: 96px; height: 72px; margin: 30px 0 0;
+  border-radius: 10px; overflow: hidden; background: var(--pill);
+}
+html.rr #siteTable > .thing > .thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+html.rr #siteTable > .thing > .thumbnail.self, html.rr #siteTable > .thing > .thumbnail.default,
+html.rr #siteTable > .thing.rr-has-media > .thumbnail { display: none; }
+html.rr #siteTable > .thing > .clearleft { display: none; }
+
+.rr-head { display: flex; align-items: center; gap: 6px; min-height: 24px; font-size: 12px; color: var(--muted); }
+.rr-sub { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text) !important; text-decoration: none; }
+.rr-sub:hover span:last-child { text-decoration: underline; }
+.rr-author { color: var(--muted) !important; text-decoration: none; }
+html.rr .entry .title { margin: 6px 0 2px; font: 600 17px/1.3 var(--font); color: var(--text); overflow-wrap: anywhere; }
+html.rr .entry a.title { color: var(--text); font: inherit; margin: 0; }
+html.rr .entry a.title:visited { color: var(--muted); }
+html.rr .linkflairlabel {
+  display: inline-block; margin: 0 0 0 4px; padding: 1px 8px; border: 0; border-radius: 999px;
+  background: var(--chip); color: var(--text); font: 600 12px/18px var(--font); vertical-align: middle;
+  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.rr-media {
+  display: flex; justify-content: center; margin: 8px 0 4px; border-radius: 16px; overflow: hidden;
+  background: var(--pill); max-height: 540px;
+}
+.rr-media img { display: block; max-width: 100%; max-height: 540px; width: auto; height: auto; object-fit: contain; }
+.rr-play {
+  position: absolute; left: 6px; bottom: 6px; width: 26px; height: 26px; padding: 0 !important;
+  justify-content: center; background: rgb(0 0 0 / .65) !important; color: #fff !important;
+}
+.rr-play svg { width: 14px; height: 14px; fill: currentColor; }
+
+/* action row */
+.rr-actions-row { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; flex-wrap: wrap; }
+.rr-pill, html.rr .rr-actions-row > .midcol {
+  display: inline-flex; align-items: center; height: 32px; border-radius: 999px;
+  background: var(--pill); color: var(--text); font: 600 12px var(--font); border: 0;
+}
+.rr-pill > a { text-transform: capitalize; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 12px; color: inherit !important; text-decoration: none; font: inherit; }
+.rr-pill:hover { background: var(--pill-hover); }
+.rr-pill svg { width: 16px; height: 16px; fill: currentColor; flex: none; }
+.rr-more { width: 32px; justify-content: center; cursor: pointer; padding: 0; }
+
+/* Reddit's vote widget, laid out as a pill: [up] score [down] */
+html.rr .rr-actions-row > .midcol { float: none; width: auto; margin: 0; padding: 0 2px; gap: 0; }
+html.rr .midcol .arrow {
+  width: 32px; height: 32px; margin: 0; border-radius: 50%; cursor: pointer;
+  background: currentColor; color: var(--text);
+  -webkit-mask: var(--arrow) center / 16px no-repeat; mask: var(--arrow) center / 16px no-repeat;
+}
+html.rr .midcol .arrow.up, html.rr .midcol .arrow.upmod {
+  --arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 2 2 11h5v7h6v-7h5L10 2Zm0 2.4 5 5.1h-3.5v7H8.5v-7H5l5-5.1Z'/%3E%3C/svg%3E");
+}
+html.rr .midcol .arrow.down, html.rr .midcol .arrow.downmod {
+  --arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 18l8-9h-5V2H7v7H2l8 9Zm0-2.4L5 10.5h3.5v-7h3v7H15l-5 5.1Z'/%3E%3C/svg%3E");
+}
+html.rr .midcol .arrow:hover { color: var(--up); }
+html.rr .midcol .arrow.down:hover { color: var(--down); }
+html.rr .midcol .score { display: none; min-width: 2.5em; text-align: center; margin: 0; padding: 0; font: 600 12px var(--font); color: inherit; }
+html.rr .midcol.unvoted .score.unvoted, html.rr .midcol.likes .score.likes, html.rr .midcol.dislikes .score.dislikes { display: block; }
+html.rr .rr-actions-row > .midcol.likes { background: var(--up); color: #fff; }
+html.rr .rr-actions-row > .midcol.dislikes { background: var(--down); color: #fff; }
+html.rr .midcol.likes .arrow, html.rr .midcol.dislikes .arrow { color: #fff; }
+
+/* hide / report / crosspost: behind the "more" button */
+html.rr .flat-list.buttons.rr-menu { display: none; }
+html.rr .thing.rr-menu-open > .flat-list.buttons.rr-menu {
+  display: flex; gap: 6px; margin: 0 0 8px; padding: 0;
+}
+html.rr .rr-menu li { padding: 0; }
+html.rr .rr-menu li a, html.rr .rr-menu li form a {
+  display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 999px;
+  background: var(--pill); color: var(--text); font: 600 12px var(--font); text-decoration: none;
+}
+
+/* expanded media and text from Reddit's own expando */
+html.rr .expando { margin: 6px 0; max-width: 100%; }
+html.rr .expando .md { max-width: none; font-size: 14px; color: var(--text); }
+
+/* next page */
+html.rr .nav-buttons { margin: 16px; text-align: center; }
+html.rr .nav-buttons .nextprev { color: var(--muted); font: 600 13px var(--font); }
+html.rr .nav-buttons a { display: inline-flex; align-items: center; height: 36px; padding: 0 18px; margin-left: 6px; border-radius: 999px; background: var(--pill); border: 0; color: var(--text); text-decoration: none; font-weight: 600; }
+
+/* ---------- desktop: left rail ---------- */
+#rr-rail { display: none; }
+@media (min-width: 1100px) {
+  #rr-rail {
+    display: block; position: fixed; top: 101px; left: 0; bottom: 0; width: 248px; overflow-y: auto;
+    padding: 12px 12px 24px; border-right: 1px solid var(--line); background: var(--surface);
+  }
+  html.rr .content { margin-left: max(272px, calc(50% - 378px)); }
+  html.rr #siteTable > .thing { border-radius: 16px; border-bottom: 0; margin: 4px 0; }
+  html.rr #siteTable > .thing + .clearleft + .thing::before {
+    content: ""; position: absolute; top: -5px; left: 16px; right: 16px; border-top: 1px solid var(--line);
+  }
+}
+.rr-rail-title { margin: 14px 12px 6px; font: 600 12px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rr-rail-link {
+  display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 10px;
+  text-decoration: none; font: 500 14px var(--font); color: var(--text) !important;
+}
+.rr-rail-link:hover { background: var(--hover); }
+.rr-rail-link .rr-avatar { width: 28px; height: 28px; }
+
+/* ---------- phones ---------- */
+.rr-desktop { display: none !important; }
+@media (min-width: 700px) { .rr-desktop { display: inline-flex !important; } }
+@media (max-width: 699px) {
+  .rr-logo-word { display: none; }
+  .rr-feeds { justify-content: flex-start; }
+  .rr-bar-top { gap: 8px; padding: 0 12px; }
+  html.rr #siteTable > .thing { padding: 10px 12px 4px; border-bottom: 8px solid var(--hover); }
+  html.rr #siteTable > .thing:hover { background: transparent; }
+  html.rr #siteTable > .thing > .thumbnail { width: 84px; height: 64px; }
+  html.rr .entry .title { font-size: 16px; }
+  .rr-media { margin-left: -12px; margin-right: -12px; border-radius: 0; }
+  .rr-pill, html.rr .rr-actions-row > .midcol { height: 36px; }
+  html.rr .midcol .arrow { width: 36px; height: 36px; }
+  .rr-pill .rr-label { display: none; }
+  .rr-more { width: 36px; }
+}
