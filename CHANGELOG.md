@@ -11,7 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 ### Changed
 
 - Only Reddit's feeds open in old Reddit now: the front page (on Hot), `r/all`, `r/popular`,
-  combined subreddits (`r/a+b`) and custom feeds. Posts, subreddits, profiles, search and
+  combined subreddits (`r/a+b`), custom feeds, and old Reddit's `r/friends`, `r/mod` and
+  `r/random`. Posts (also those reached through a feed), subreddits, profiles, search and
   every other page stay on Reddit's new design. Reddit's new design has removed `r/all`,
   sorts `r/popular` unreliably and still has no Hot front page, but it shows posts and
   subreddits fine.

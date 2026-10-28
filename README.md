@@ -16,8 +16,9 @@ custom feed sorted by Hot.
 ## How it works
 
 - **Feeds open in old Reddit**, before the page draws: the front page, `r/all`,
-  `r/popular`, combined subreddits (`r/a+b`) and custom feeds. Old Reddit needs you to be
-  logged in.
+  `r/popular`, combined subreddits (`r/a+b`), custom feeds, and old Reddit's `r/friends`,
+  `r/mod` and `r/random`. Posts and other pages under them open in the new design. Old
+  Reddit needs you to be logged in.
 - The front page (`reddit.com/`, `/hot`, `/best`, and bare `old.reddit.com`) goes to
   `old.reddit.com/hot`. Anything after the address (like `?feed=home`) is kept.
 - **Subreddits open in the new design, sorted by Hot** (`/r/<name>/hot/`). A subreddit you

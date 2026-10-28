@@ -56,7 +56,11 @@ const clickEvent = (onLogo, mods = {}) => {
 
 const POST = '/r/x/comments/abc/title/';
 const FEEDS = ['/new', '/top/', '/r/all', '/r/all/', '/r/All-pics-funny/top/', '/r/popular/',
-  '/r/popular/rising', '/r/a+b/', '/r/a+b+c/new/', '/user/a/m/b/hot/', '/user/Some_one/m/my-feed'];
+  '/r/popular/rising', '/r/a+b/', '/r/a+b+c/new/', '/user/a/m/b/hot/', '/user/Some_one/m/my-feed',
+  '/u/a/m/b/', '/r/friends/', '/r/mod', '/r/random', '/r/randnsfw/new/'];
+// Posts and other pages under a feed's address, which are not feeds.
+const UNDER_FEEDS = ['/r/all/comments/abc/t/', '/r/popular/comments/abc/t/', '/r/a+b/comments/abc/t/',
+  '/user/a/m/b/comments/abc/t/', '/r/popular/about', '/r/all/search'];
 
 // A link at `href` (resolved against `base`), and a click on it as the browser sends it.
 const linkClick = (href, base = 'https://old.reddit.com/hot') => {
@@ -85,7 +89,8 @@ test('feeds open on old Reddit at the same address', () => {
 });
 
 test('a subreddit opens sorted by Hot on the new design', () => {
-  for (const p of ['/r/x', '/r/x/', '/r/Some_Sub2/', '/r/allergies', '/r/popularity/']) {
+  for (const p of ['/r/x', '/r/x/', '/r/Some_Sub2/', '/r/allergies', '/r/popularity/', '/R/x',
+    '/r/modnews', '/r/randomthoughts']) {
     assert.deepEqual(load(p).calls.replace, [p.replace(/\/?$/, '/hot/')], p);
   }
   assert.deepEqual(load('/r/x', { search: '?f=y', hash: '#z' }).calls.replace, ['/r/x/hot/?f=y#z']);
@@ -94,7 +99,7 @@ test('a subreddit opens sorted by Hot on the new design', () => {
 test('posts, sorted subreddits and every other page stay on the new design', () => {
   for (const p of [POST, '/r/x/hot/', '/r/x/new', '/r/x/top/', '/r/x/wiki', '/r/allergies/new/',
     '/user/a', '/u/a/', '/search', '/submit', '/settings',
-    '/chat', '/media', '/r/x/s/AbC123', '/message/inbox', '/prefs']) {
+    '/chat', '/media', '/r/x/s/AbC123', '/message/inbox', '/prefs', ...UNDER_FEEDS]) {
     assert.deepEqual(load(p).calls, { replace: [], assign: [] }, p);
   }
 });
@@ -248,6 +253,7 @@ test('old Reddit: links to posts, subreddits and profiles open on the new design
     ['/r/x/new/', 'https://www.reddit.com/r/x/new/'],
     ['/user/a', 'https://www.reddit.com/user/a'],
     ['/u/a/comments/', 'https://www.reddit.com/u/a/comments/'],
+    ...UNDER_FEEDS.map(p => [p, 'https://www.reddit.com' + p]),
   ];
   for (const type of ['click', 'auxclick', 'contextmenu']) {
     for (const [href, want] of cases) {

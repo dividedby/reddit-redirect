@@ -23,7 +23,8 @@
 // and doesn't remember a subreddit's sort; old Reddit's front page shows Best when you're
 // logged in. So:
 //   - the front page goes to old Reddit's Hot (old.reddit.com/hot), and r/all, r/popular,
-//     combined subreddits (r/a+b) and custom feeds open on old Reddit (OLD_FEED);
+//     combined subreddits (r/a+b), custom feeds and r/friends, r/mod and r/random open on
+//     old Reddit (OLD_FEED);
 //   - a subreddit opens on the new design sorted by Hot (/r/x/hot/), and on old Reddit,
 //     links to posts, subreddits and profiles open on the new design;
 //   - if old Reddit sent you back here, feeds stay on the new design and the front page
@@ -37,11 +38,12 @@
   const OLD = 'https://old.reddit.com';
   const NEW = 'https://www.reddit.com';
 
-  // Feeds kept on old Reddit: the front page and its sorts, r/all (with r/all-x filters),
-  // r/popular, combined subreddits and custom feeds.
-  const OLD_FEED = /^\/((hot|new|rising|top|controversial|best)\/?)?$|^\/r\/(all(-\w+)*|popular|\w+(\+\w+)+)(\/|$)|^\/user\/[\w-]+\/m\/[\w-]+/i;
+  // Feeds kept on old Reddit: the front page, r/all (with r/all-x filters), r/popular, old
+  // Reddit's r/friends, r/mod and r/random, combined subreddits and custom feeds, each with an
+  // optional sort. A post or any other page under one of them is not a feed.
+  const OLD_FEED = /^\/((hot|new|rising|top|controversial|best)\/?)?$|^\/(r\/(all(-\w+)*|popular|friends|mod|random|randnsfw|\w+(\+\w+)+)|u(ser)?\/[\w-]+\/m\/[\w-]+)(\/(hot|new|rising|top|controversial|best|gilded))?\/?$/i;
   // A subreddit with no sort chosen, which the new design shows as Best.
-  const isSub = path => /^\/r\/\w+\/?$/.test(path) && !OLD_FEED.test(path);
+  const isSub = path => /^\/r\/\w+\/?$/i.test(path) && !OLD_FEED.test(path);
   const hot = path => path.replace(/\/?$/, '/hot/');
 
   // Gives a clicked link its new address just before the browser (or Reddit's own router)

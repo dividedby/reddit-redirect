@@ -5,7 +5,8 @@ Reddit's new design, with subreddits on **Hot**.
 **New in 2.2**
 
 - **Only the feeds open in old Reddit**: the front page (on Hot), `r/all`, `r/popular`,
-  combined subreddits (`r/a+b`) and custom feeds. The new design has removed `r/all` and
+  combined subreddits (`r/a+b`), custom feeds, and old Reddit's `r/friends`, `r/mod` and
+  `r/random`. The new design has removed `r/all` and
   has no Hot front page, but it shows posts and subreddits fine, so posts, subreddits,
   profiles and search now stay there.
 - **Subreddits open on Hot** (`/r/<name>/hot/`): the new design starts every visit on Best.
