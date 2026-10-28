@@ -1,21 +1,30 @@
 // Prototype of the feed restyle for old Reddit's feed pages (front page, r/all, r/popular,
 // custom feeds). Adds `rr` to <html>, a small app bar, and per-post header/media/pills.
 // Everything reuses Reddit's own elements (vote arrows, save, hide) so their handlers work.
+// Reddit's handlers find them by structure: the vote update looks for `.midcol` as a direct
+// child of the post, and save listens for `.save-button a` and reads the link's own text. So
+// `.midcol` stays where it is (the grid puts it in the action row), the save `li` moves whole,
+// and Reddit's links get no child elements (their icons are CSS).
 (() => {
   'use strict';
   const root = document.documentElement;
   if (root.classList.contains('rr')) return; // safe to run twice
-  root.classList.add('rr');
+  root.classList.add('rr', 'rr-booting'); // rr-booting hides the page until it's restyled
+  setTimeout(() => root.classList.remove('rr-booting'), 3000); // never leave it hidden
 
   // Old Reddit declares a 1024px viewport, which a phone shows as a shrunken desktop page.
-  const setViewport = () => {
-    let meta = document.querySelector('meta[name="viewport"]');
+  const setMeta = (name, content) => {
+    let meta = document.querySelector(`meta[name="${name}"]`);
     if (!meta) {
       meta = document.createElement('meta');
-      meta.name = 'viewport';
+      meta.name = name;
       (document.head || root).append(meta);
     }
-    meta.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
+    meta.content = content;
+  };
+  const setViewport = () => {
+    setMeta('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
+    setMeta('color-scheme', 'light dark'); // the page has its own dark theme
   };
 
   const el = (tag, cls, text) => {
@@ -36,13 +45,39 @@
   };
   const ICON = {
     comment: 'M10 2.5c-4.4 0-8 2.9-8 6.6 0 1.9 1 3.6 2.6 4.8l-.8 3.1 3.6-1.8c.8.2 1.7.3 2.6.3 4.4 0 8-2.9 8-6.5S14.4 2.5 10 2.5Z',
-    share: 'M12 3l5 5-5 5V9.7c-4 0-6.5 1.2-8.5 4.3.6-4.6 3-7.6 8.5-8.3V3Z',
-    save: 'M5 2.5h10v15l-5-3.6-5 3.6v-15Z',
     more: 'M4 10a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Zm4.5 0a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Zm4.5 0a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z',
     search: 'M8.5 3a5.5 5.5 0 1 0 3.4 9.8l3.7 3.7 1.1-1.1-3.7-3.7A5.5 5.5 0 0 0 8.5 3Zm0 1.6a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 0 1 0-7.8Z',
     mail: 'M2.5 4.5h15v11h-15v-11Zm1.6 1.6v.3L10 10.6l5.9-4.2v-.3H4.1Zm11.8 2.3L10 12.6 4.1 8.4v5.5h11.8V8.4Z',
     plus: 'M9.2 3h1.6v6.2H17v1.6h-6.2V17H9.2v-6.2H3V9.2h6.2V3Z',
     play: 'M7 5l8 5-8 5V5Z',
+    user: 'M10 2.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7ZM3.5 17c.4-3.3 3.1-5.5 6.5-5.5s6.1 2.2 6.5 5.5h-13Z',
+  };
+
+  // "an hour ago" -> "1h", "3 months ago" -> "3mo", as new Reddit writes them.
+  const UNIT = { second: 's', minute: 'm', hour: 'h', day: 'd', month: 'mo', year: 'y' };
+  const age = text => {
+    const m = text.trim().match(/^(an?|\d+) (second|minute|hour|day|month|year)s? ago$/);
+    return m ? `${/\d/.test(m[1]) ? m[1] : 1}${UNIT[m[2]]}` : text.replace(/ ago$/, '');
+  };
+
+  // A snoo-ish mark as SVG fills, which dark-mode extensions such as Noir leave alone (they
+  // repainted the CSS version's white face).
+  const logoMark = () => {
+    const s = document.createElementNS(SVG, 'svg');
+    s.setAttribute('viewBox', '0 0 32 32');
+    s.setAttribute('class', 'rr-logo-mark');
+    s.setAttribute('aria-hidden', 'true');
+    for (const [tag, attrs] of [
+      ['circle', { cx: 16, cy: 16, r: 16, fill: '#ff4500' }],
+      ['ellipse', { cx: 16, cy: 17.5, rx: 9, ry: 7, fill: '#fff' }],
+      ['circle', { cx: 12.5, cy: 17, r: 1.6, fill: '#ff4500' }],
+      ['circle', { cx: 19.5, cy: 17, r: 1.6, fill: '#ff4500' }],
+    ]) {
+      const n = document.createElementNS(SVG, tag);
+      for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+      s.append(n);
+    }
+    return s;
   };
 
   // A colored letter in place of the subreddit icon (old Reddit's listing has no icons).
@@ -67,7 +102,7 @@
     const logo = el('a', 'rr-logo');
     logo.href = '/hot';
     logo.setAttribute('aria-label', 'Reddit front page, Hot');
-    logo.append(el('span', 'rr-logo-mark'), el('span', 'rr-logo-word', 'reddit'));
+    logo.append(logoMark(), el('span', 'rr-logo-word', 'reddit'));
     top.append(logo);
 
     const feeds = el('div', 'rr-feeds');
@@ -95,18 +130,22 @@
     if (mailSrc && mailSrc.classList.contains('havemail')) mail.classList.add('rr-dot');
     mail.append(icon(ICON.mail));
     actions.append(search, create, mail);
+    // Some extensions (Sink It) hide the username; Reddit sends /user/me/ to your profile.
     const user = header.querySelector('#header-bottom-right .user a');
-    if (user) {
+    if (user || document.body.classList.contains('loggedin')) {
       const me = el('a', 'rr-me');
-      me.href = user.href;
-      me.setAttribute('aria-label', `Profile: ${user.textContent}`);
-      me.append(avatar(user.textContent));
+      me.href = user ? user.href : '/user/me/';
+      me.setAttribute('aria-label', user ? `Profile: ${user.textContent}` : 'Profile');
+      me.append(user ? avatar(user.textContent) : icon(ICON.user));
       actions.append(me);
     }
     top.append(actions);
     bar.append(top);
 
-    // The sort tabs, as a row of pills (Reddit's own links, moved).
+    header.before(bar);
+
+    // The sort tabs, as a row of pills (Reddit's own links, moved). Below the bar rather than
+    // in it, so on a phone it scrolls away while the bar stays (as on new Reddit).
     const tabs = header.querySelector('.tabmenu');
     if (tabs) {
       const sorts = el('div', 'rr-sorts');
@@ -118,9 +157,8 @@
         if (li.classList.contains('selected')) pill.setAttribute('aria-current', 'page');
         sorts.append(pill);
       }
-      bar.append(sorts);
+      bar.after(sorts);
     }
-    header.before(bar);
   };
 
   // Desktop: a left rail with the feeds, custom feeds and subscriptions.
@@ -169,7 +207,7 @@
       head.append(s);
     }
     const time = tagline.querySelector('time');
-    if (time) head.append(el('span', 'rr-dot-sep', '•'), el('span', 'rr-age', time.textContent.replace(/ ago$/, '').replace(/ (\w)\w*s?$/, '$1').replace(/^an? /, '1')));
+    if (time) head.append(el('span', 'rr-dot-sep', '•'), el('span', 'rr-age', age(time.textContent)));
     const author = tagline.querySelector('a.author');
     if (author) {
       const a = author.cloneNode(false);
@@ -197,10 +235,9 @@
       thing.querySelector(':scope > .thumbnail')?.append(pill('rr-play', icon(ICON.play)));
     }
 
-    // Action row: Reddit's vote arrows and score, then comments, share, save, more.
+    // Action row: comments, share, save, more. Reddit's vote arrows and score (.midcol) stay a
+    // child of the post; the grid shows them at the start of this row.
     const row = el('div', 'rr-actions-row');
-    const mid = thing.querySelector(':scope > .midcol');
-    if (mid) row.append(mid); // moved, not copied: its arrows keep their click handlers
     const comments = buttons.querySelector('a.comments');
     if (comments) {
       const n = (comments.textContent.match(/[\d,.]+k?/) || ['0'])[0];
@@ -212,15 +249,11 @@
     }
     const share = buttons.querySelector('.share a');
     if (share) {
-      share.textContent = '';
-      share.append(icon(ICON.share), el('span', 'rr-label', 'Share'));
-      row.append(pill('', share));
+      share.textContent = 'Share';
+      row.append(pill('rr-share', share));
     }
-    const save = buttons.querySelector('.save-button a');
-    if (save) {
-      save.prepend(icon(ICON.save));
-      row.append(pill('rr-save', save));
-    }
+    const save = buttons.querySelector('.save-button a')?.closest('li');
+    if (save) row.append(pill('rr-save', save));
     const more = el('button', 'rr-pill rr-more');
     more.type = 'button';
     more.setAttribute('aria-label', 'More: hide, report, crosspost');
@@ -228,6 +261,7 @@
     more.append(icon(ICON.more));
     row.append(more);
     buttons.classList.add('rr-menu'); // what's left (hide, report, crosspost) is the menu
+    for (const li of buttons.children) if (!li.textContent.trim()) li.classList.add('rr-empty');
     // Full width under the post, beside nothing (the thumbnail sits next to the title only).
     thing.querySelector(':scope > .clearleft')?.before(row, buttons);
   };
@@ -245,12 +279,16 @@
 
   setViewport();
   const start = () => {
-    buildAppBar();
-    buildRail();
-    restyleAll();
-    // Later pages (RES's never-ending scroll) add posts to #siteTable.
-    const table = document.getElementById('siteTable');
-    if (table) new MutationObserver(restyleAll).observe(table, { childList: true });
+    try {
+      buildAppBar();
+      buildRail();
+      restyleAll();
+      // Later pages (RES's never-ending scroll) add posts to #siteTable.
+      const table = document.getElementById('siteTable');
+      if (table) new MutationObserver(restyleAll).observe(table, { childList: true });
+    } finally {
+      root.classList.remove('rr-booting');
+    }
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();

@@ -41,3 +41,10 @@ Things to look at: vote, save, hide and the "⋯" menu still work (tap them); im
 their aspect ratio; no sideways scrolling; the sticky bar doesn't cover the first post;
 `safari console` shows no errors. The lab injects after the page has loaded, so a flash of
 old Reddit before the restyle is expected there and says nothing about the real script.
+
+Voting changes the post on Reddit even when the page doesn't show it, so check the result with
+Reddit (`/by_id/t3_<id>.json`: `likes`, `saved`, `hidden`) and undo what you tapped. To compare
+with another userscript in the same session, inject each by hand after `safari open`:
+`--reinject` re-runs every script injected so far. On the iPhone the owner's Safari extensions
+run in the page too: Noir repaints the restyle's colors in dark mode, and Sink It sets post
+padding with `!important`.

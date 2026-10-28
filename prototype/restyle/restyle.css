@@ -16,15 +16,17 @@ html.rr {
 }
 
 html.rr, html.rr body { background: var(--bg); color: var(--text); font-family: var(--font); }
-html.rr body { margin: 0; font-size: 14px; }
+html.rr body { margin: 0; padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); font-size: 14px; }
 html.rr a { color: inherit; }
 html.rr :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Until the script has built the page (it runs at document-start): no flash of old Reddit. */
+html.rr.rr-booting body { visibility: hidden; }
 
 /* Reddit's own header is replaced by #rr-bar; its pieces we still need were moved out. */
 html.rr #header, html.rr .side, html.rr .footer-parent, html.rr .rank,
 html.rr #siteTable > .thing > .parent, html.rr #siteTable > .thing > .child,
 html.rr .tagline, html.rr .expando-button, html.rr .domain, html.rr .promotedlink,
-html.rr .listingsignupbar, html.rr .infobar { display: none !important; }
+html.rr .listingsignupbar, html.rr .infobar, html.rr .listing-chooser { display: none !important; }
 
 /* ---------- app bar ---------- */
 #rr-bar {
@@ -33,13 +35,7 @@ html.rr .listingsignupbar, html.rr .infobar { display: none !important; }
 }
 .rr-bar-top { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; }
 .rr-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; flex: none; }
-.rr-logo-mark {
-  width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
-  -webkit-mask: none; position: relative;
-}
-.rr-logo-mark::after { /* a simple snoo-ish face */
-  content: ""; position: absolute; inset: 9px 7px 8px; border-radius: 50%; background: #fff;
-}
+.rr-logo-mark { display: block; width: 32px; height: 32px; }
 .rr-logo-word { font-weight: 800; font-size: 22px; letter-spacing: -.04em; color: var(--accent); }
 .rr-feeds, .rr-sorts { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
 .rr-feeds::-webkit-scrollbar, .rr-sorts::-webkit-scrollbar { display: none; }
@@ -56,13 +52,15 @@ html.rr .listingsignupbar, html.rr .infobar { display: none !important; }
   border-radius: 50%; color: var(--text);
 }
 .rr-icon:hover { background: var(--hover); }
-.rr-icon svg { width: 20px; height: 20px; fill: currentColor; }
+.rr-icon svg, .rr-me svg { width: 20px; height: 20px; fill: currentColor; }
 .rr-dot::after {
   content: ""; position: absolute; top: 8px; right: 8px; width: 9px; height: 9px;
   border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface);
 }
 .rr-me .rr-avatar { width: 32px; height: 32px; font-size: 14px; }
-.rr-sorts { padding: 0 12px 8px; }
+/* The sort row sits under the bar and scrolls away; on desktop it stays (beside the rail). */
+.rr-sorts { padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+@media (min-width: 1100px) { .rr-sorts { position: sticky; top: 57px; z-index: 50; } }
 .rr-sorts .rr-chip { height: 30px; padding: 0 12px; font-size: 13px; }
 
 /* ---------- avatars ---------- */
@@ -73,19 +71,26 @@ html.rr .listingsignupbar, html.rr .infobar { display: none !important; }
 }
 
 /* ---------- feed ---------- */
-html.rr .content { margin: 0 auto; padding: 0; max-width: 756px; float: none; width: auto; }
+/* !important where old Reddit or an extension would win: the logged-in listing chooser
+   indents .content with a three-class selector, and Sink It sets post padding with
+   !important. */
+html.rr .content { margin: 0 auto !important; padding: 0; max-width: 756px; float: none; width: auto; }
 html.rr .content > .spacer, html.rr #siteTable { margin: 0; padding: 0; }
 html.rr #siteTable > .clearleft { display: none; }
+/* A grid: title column and thumbnail, then [vote] [comments share save more], then the menu.
+   .midcol stays a direct child of the post, where Reddit's vote code looks for it. */
 html.rr #siteTable > .thing {
-  position: relative; display: flex; gap: 12px; margin: 0; padding: 10px 16px 6px;
-  flex-wrap: wrap; background: transparent; border: 0; border-bottom: 1px solid var(--line);
-  overflow: visible;
+  position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "entry entry thumb" "vote actions actions" "menu menu menu";
+  align-items: start; margin: 0 !important; padding: 10px 16px 6px !important;
+  background: transparent; border: 0; border-bottom: 1px solid var(--line); overflow: visible;
 }
-html.rr #siteTable > .thing > .rr-actions-row, html.rr #siteTable > .thing > .rr-menu { order: 3; flex: 1 0 100%; }
+html.rr #siteTable > .thing > .rr-actions-row { grid-area: actions; margin-left: 8px; }
+html.rr #siteTable > .thing > .rr-menu { grid-area: menu; }
 html.rr #siteTable > .thing:hover { background: var(--hover); }
-html.rr #siteTable > .thing > .entry { order: 1; flex: 1; min-width: 0; margin: 0; overflow: visible; }
+html.rr #siteTable > .thing > .entry { grid-area: entry; min-width: 0; margin: 0; overflow: visible; }
 html.rr #siteTable > .thing > .thumbnail {
-  order: 2; position: relative; flex: none; float: none; width: 96px; height: 72px; margin: 30px 0 0;
+  grid-area: thumb; position: relative; float: none; width: 96px; height: 72px; margin: 30px 0 0 12px;
   border-radius: 10px; overflow: hidden; background: var(--pill);
 }
 html.rr #siteTable > .thing > .thumbnail img { width: 100%; height: 100%; object-fit: cover; }
@@ -119,17 +124,27 @@ html.rr .linkflairlabel {
 
 /* action row */
 .rr-actions-row { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; flex-wrap: wrap; }
-.rr-pill, html.rr .rr-actions-row > .midcol {
+.rr-pill, html.rr #siteTable > .thing > .midcol {
   display: inline-flex; align-items: center; height: 32px; border-radius: 999px;
   background: var(--pill); color: var(--text); font: 600 12px var(--font); border: 0;
 }
-.rr-pill > a { text-transform: capitalize; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 12px; color: inherit !important; text-decoration: none; font: inherit; }
+/* The save link sits in Reddit's own li (its handler listens for `.save-button a`). */
+.rr-pill > li { display: contents; }
+.rr-pill a { text-transform: capitalize; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 12px; color: inherit !important; text-decoration: none; font: inherit; }
 .rr-pill:hover { background: var(--pill-hover); }
 .rr-pill svg { width: 16px; height: 16px; fill: currentColor; flex: none; }
+/* Icons on Reddit's own links are drawn here, so a tap's target is still the link. */
+.rr-share a::before, .rr-save a::before {
+  content: ""; width: 16px; height: 16px; flex: none; background: currentColor;
+  -webkit-mask: var(--icon) center / 16px no-repeat; mask: var(--icon) center / 16px no-repeat;
+}
+.rr-share { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M12 3l5 5-5 5V9.7c-4 0-6.5 1.2-8.5 4.3.6-4.6 3-7.6 8.5-8.3V3Z'/%3E%3C/svg%3E"); }
+.rr-save { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 2.5h10v15l-5-3.6-5 3.6v-15Z'/%3E%3C/svg%3E"); }
+html.rr .thing.saved .rr-save { color: var(--accent); }
 .rr-more { width: 32px; justify-content: center; cursor: pointer; padding: 0; }
 
 /* Reddit's vote widget, laid out as a pill: [up] score [down] */
-html.rr .rr-actions-row > .midcol { float: none; width: auto; margin: 0; padding: 0 2px; gap: 0; }
+html.rr #siteTable > .thing > .midcol { grid-area: vote; float: none; width: auto; margin: 8px 0 4px; padding: 0 2px; gap: 0; }
 html.rr .midcol .arrow {
   width: 32px; height: 32px; margin: 0; border-radius: 50%; cursor: pointer;
   background: currentColor; color: var(--text);
@@ -145,8 +160,8 @@ html.rr .midcol .arrow:hover { color: var(--up); }
 html.rr .midcol .arrow.down:hover { color: var(--down); }
 html.rr .midcol .score { display: none; min-width: 2.5em; text-align: center; margin: 0; padding: 0; font: 600 12px var(--font); color: inherit; }
 html.rr .midcol.unvoted .score.unvoted, html.rr .midcol.likes .score.likes, html.rr .midcol.dislikes .score.dislikes { display: block; }
-html.rr .rr-actions-row > .midcol.likes { background: var(--up); color: #fff; }
-html.rr .rr-actions-row > .midcol.dislikes { background: var(--down); color: #fff; }
+html.rr #siteTable > .thing > .midcol.likes { background: var(--up); color: #fff; }
+html.rr #siteTable > .thing > .midcol.dislikes { background: var(--down); color: #fff; }
 html.rr .midcol.likes .arrow, html.rr .midcol.dislikes .arrow { color: #fff; }
 
 /* hide / report / crosspost: behind the "more" button */
@@ -155,6 +170,7 @@ html.rr .thing.rr-menu-open > .flat-list.buttons.rr-menu {
   display: flex; gap: 6px; margin: 0 0 8px; padding: 0;
 }
 html.rr .rr-menu li { padding: 0; }
+html.rr .rr-menu li.rr-empty { display: none; } /* the ones whose links moved to the row */
 html.rr .rr-menu li a, html.rr .rr-menu li form a {
   display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 999px;
   background: var(--pill); color: var(--text); font: 600 12px var(--font); text-decoration: none;
@@ -163,6 +179,15 @@ html.rr .rr-menu li a, html.rr .rr-menu li form a {
 /* expanded media and text from Reddit's own expando */
 html.rr .expando { margin: 6px 0; max-width: 100%; }
 html.rr .expando .md { max-width: none; font-size: 14px; color: var(--text); }
+
+/* r/popular's "popular in: <country>" and state pickers */
+html.rr .content > .menuarea {
+  display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 10px 16px; border: 0;
+  border-bottom: 1px solid var(--line); font: 500 13px var(--font); color: var(--muted);
+}
+html.rr .menuarea .dropdown.lightdrop .selected {
+  color: var(--text); font-weight: 600; text-decoration: none; background-position: right center;
+}
 
 /* next page */
 html.rr .nav-buttons { margin: 16px; text-align: center; }
@@ -173,11 +198,11 @@ html.rr .nav-buttons a { display: inline-flex; align-items: center; height: 36px
 #rr-rail { display: none; }
 @media (min-width: 1100px) {
   #rr-rail {
-    display: block; position: fixed; top: 101px; left: 0; bottom: 0; width: 248px; overflow-y: auto;
+    display: block; position: fixed; top: 104px; left: 0; bottom: 0; width: 248px; overflow-y: auto;
     padding: 12px 12px 24px; border-right: 1px solid var(--line); background: var(--surface);
   }
-  html.rr .content { margin-left: max(272px, calc(50% - 378px)); }
-  html.rr #siteTable > .thing { border-radius: 16px; border-bottom: 0; margin: 4px 0; }
+  html.rr .content { margin-left: max(272px, calc(50% - 378px)) !important; }
+  html.rr #siteTable > .thing { border-radius: 16px; border-bottom: 0; margin: 4px 0 !important; }
   html.rr #siteTable > .thing + .clearleft + .thing::before {
     content: ""; position: absolute; top: -5px; left: 16px; right: 16px; border-top: 1px solid var(--line);
   }
@@ -197,13 +222,13 @@ html.rr .nav-buttons a { display: inline-flex; align-items: center; height: 36px
   .rr-logo-word { display: none; }
   .rr-feeds { justify-content: flex-start; }
   .rr-bar-top { gap: 8px; padding: 0 12px; }
-  html.rr #siteTable > .thing { padding: 10px 12px 4px; border-bottom: 8px solid var(--hover); }
+  html.rr #siteTable > .thing { padding: 10px 12px 4px !important; }
   html.rr #siteTable > .thing:hover { background: transparent; }
   html.rr #siteTable > .thing > .thumbnail { width: 84px; height: 64px; }
   html.rr .entry .title { font-size: 16px; }
-  .rr-media { margin-left: -12px; margin-right: -12px; border-radius: 0; }
-  .rr-pill, html.rr .rr-actions-row > .midcol { height: 36px; }
+  html.rr .content > .menuarea { padding: 10px 12px; }
+  .rr-pill, html.rr #siteTable > .thing > .midcol { height: 36px; }
   html.rr .midcol .arrow { width: 36px; height: 36px; }
-  .rr-pill .rr-label { display: none; }
+  .rr-share a { font-size: 0; gap: 0; } /* icon only */
   .rr-more { width: 36px; }
 }
