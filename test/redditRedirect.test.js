@@ -9,8 +9,10 @@ const src = fs.readFileSync(path.join(__dirname, '..', 'redditRedirect.user.js')
 
 // Loads the script at `pathname`; `withNavigation: false` simulates a browser without
 // the Navigation API, `store` is localStorage's contents (shared between loads to simulate
-// later page loads), `now` the clock. Returns the fakes so tests can fire events and read calls.
-const load = (pathname, { search = '', hash = '', withNavigation = true, store = {}, now = 1e12, noStorage = false, hostname = 'www.reddit.com' } = {}) => {
+// later page loads), `cookies` the cookie jar both hosts share (name to value), `listing` whether
+// the page has old Reddit's #siteTable, `readyState` the document's, `now` the clock. Returns the
+// fakes so tests can fire events and read calls.
+const load = (pathname, { search = '', hash = '', withNavigation = true, store = {}, now = 1e12, noStorage = false, hostname = 'www.reddit.com', cookies = {}, listing = false, readyState = 'loading' } = {}) => {
   const calls = { replace: [], assign: [] };
   const location = {
     pathname, search, hash, hostname,
@@ -21,7 +23,19 @@ const load = (pathname, { search = '', hash = '', withNavigation = true, store =
   const winListeners = {};
   const navListeners = {};
   const on = l => (type, fn, capture) => { (l[type] ||= []).push({ fn, capture }); };
-  const document = { addEventListener: on(docListeners), visibilityState: 'visible' };
+  const document = {
+    addEventListener: on(docListeners),
+    visibilityState: 'visible',
+    readyState,
+    getElementById: id => (id === 'siteTable' && listing ? {} : null),
+    get cookie() { return Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '); },
+    set cookie(line) {
+      const [pair, ...attrs] = line.split('; ');
+      const [k, v] = pair.split('=');
+      cookies[k] = v;
+      document.cookieAttrs = attrs;
+    },
+  };
   const navigation = withNavigation ? { addEventListener: on(navListeners) } : undefined;
   const window = { addEventListener: on(winListeners), navigation };
   const deny = () => { throw new Error('SecurityError'); };
@@ -185,6 +199,55 @@ test('old Reddit is tried again a day after a turn-away', () => {
   load('/', { store, now: 1e12 });
   load('/', { store, now: 1e12 + 3000 });
   assert.deepEqual(load('/r/all', { store, now: 1e12 + 3000 + DAY + 1 }).calls.replace, [OLD + '/r/all']);
+});
+
+test('old Reddit marks the time once it has shown a listing', () => {
+  const cookies = {};
+  const t = load('/hot', { hostname: 'old.reddit.com', cookies, listing: true, now: 5e11 });
+  assert.equal(cookies.rhr_old_seen, undefined); // still parsing
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.equal(cookies.rhr_old_seen, String(5e11));
+  assert.deepEqual(t.document.cookieAttrs, ['domain=.reddit.com', 'path=/', 'max-age=60', 'secure', 'samesite=lax']);
+  const loaded = {};
+  load('/hot', { hostname: 'old.reddit.com', cookies: loaded, listing: true, readyState: 'complete', now: 5e11 });
+  assert.equal(loaded.rhr_old_seen, String(5e11)); // the manager ran late: marked at once
+});
+
+test('old Reddit leaves no mark on a page without a listing', () => {
+  const cookies = {};
+  const t = load('/login/', { hostname: 'old.reddit.com', cookies });
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.deepEqual(cookies, {});
+  assert.deepEqual(load('/r/popular/', { cookies }).calls.replace, [OLD + '/r/popular/']); // www sets none
+  assert.deepEqual(cookies, {});
+});
+
+test('coming back soon after old Reddit showed a listing is not a turn-away', () => {
+  const store = {};
+  const cookies = {};
+  assert.deepEqual(load('/', { store, cookies, now: 1e12 }).calls.replace, [HOT]);
+  load('/hot', { hostname: 'old.reddit.com', cookies, listing: true, readyState: 'complete', now: 1e12 + 1000 });
+  assert.deepEqual(load('/', { store, cookies, now: 1e12 + 3000 }).calls.replace, [HOT]); // reddit.com again
+  assert.equal(store['rhr:oldRefused'], undefined);
+});
+
+test('a listing shown before the trip doesn\'t hide a turn-away', () => {
+  const store = {};
+  const cookies = {};
+  load('/hot', { hostname: 'old.reddit.com', cookies, listing: true, readyState: 'complete', now: 1e12 - 5000 });
+  load('/r/popular/', { store, cookies, now: 1e12 });
+  assert.deepEqual(load('/r/popular/', { store, cookies, now: 1e12 + 3000 }).calls.replace, []);
+  assert.equal(store['rhr:oldRefused'], String(1e12 + 3000));
+});
+
+test('a bad mark is ignored', () => {
+  for (const bad of ['', 'x', '1e99', '-1', String(2e12)]) {
+    const store = {};
+    const cookies = { rhr_old_seen: bad, other: '9'.repeat(20) };
+    load('/', { store, cookies, now: 1e12 });
+    assert.deepEqual(load('/', { store, cookies, now: 1e12 + 3000 }).calls.replace, [], bad);
+    assert.equal(store['rhr:oldRefused'], String(1e12 + 3000), bad);
+  }
 });
 
 test('other pages soon after, or the same page later, are not a turn-away', () => {
