@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+## [2.3] - 2026-11-01
+
 ### Fixed
 
 - Opening `reddit.com` again within 15 seconds of being sent to old Reddit no longer counts as
