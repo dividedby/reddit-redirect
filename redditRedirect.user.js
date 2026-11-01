@@ -3,7 +3,7 @@
 // @namespace   https://greasyfork.org/en/users/594496-divided-by
 // @author      dividedby
 // @description Opens Reddit's feeds in old Reddit, with the front page on Hot (or your custom feed if old Reddit turns you away), and subreddits on Hot. The logo goes there too
-// @version     2.2
+// @version     2.3
 // @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/dividedby/reddit-redirect
 // @supportURL  https://github.com/dividedby/reddit-redirect/issues
@@ -27,9 +27,9 @@
 //     old Reddit (OLD_FEED);
 //   - a subreddit opens on the new design sorted by Hot (/r/x/hot/), and on old Reddit,
 //     links to posts, subreddits and profiles open on the new design;
-//   - if old Reddit sent you back here, feeds stay on the new design and the front page
-//     goes to your custom feed sorted by Hot (the custom feed you last opened here), or,
-//     with none, is left alone.
+//   - if old Reddit sent you back here without showing you a listing, feeds stay on the new
+//     design and the front page goes to your custom feed sorted by Hot (the custom feed you
+//     last opened here), or, with none, is left alone.
 // A turn-away from old Reddit is remembered for a day, then old Reddit is tried again.
 
 (() => {
@@ -45,6 +45,10 @@
   // A subreddit with no sort chosen, which the new design shows as Best.
   const isSub = path => /^\/r\/\w+\/?$/i.test(path) && !OLD_FEED.test(path);
   const hot = path => path.replace(/\/?$/, '/hot/');
+
+  // Old Reddit's listing shown: a time, in a cookie because the two hosts' localStorage is
+  // separate. It's what tells coming back on purpose from being turned away.
+  const SEEN_COOKIE = 'rhr_old_seen';
 
   // Gives a clicked link its new address just before the browser (or Reddit's own router)
   // follows it, so Ctrl/Cmd-click, middle-click and "Open in New Tab" get it too.
@@ -75,6 +79,12 @@
     });
     retargetLinks(path => (/^\/(r|u|user)\//i.test(path) && !OLD_FEED.test(path)
       ? NEW + (isSub(path) ? hot(path) : path) : null));
+    const markSeen = () => {
+      if (!document.getElementById('siteTable')) return; // the log-in page, say
+      document.cookie = `${SEEN_COOKIE}=${Date.now()}; domain=.reddit.com; path=/; max-age=60; secure; samesite=lax`;
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', markSeen);
+    else markSeen();
     return;
   }
 
@@ -106,6 +116,12 @@
     return typeof f === 'string' && FEED.test(f) ? f.match(FEED)[0] : null;
   };
   const refused = () => Date.now() - time(KEY_REFUSED) <= RETRY_MS;
+  // When old Reddit last showed you a listing, or 0.
+  const seen = () => {
+    const m = document.cookie.match(new RegExp(`(?:^|; )${SEEN_COOKIE}=(\\d+)(?:;|$)`));
+    const n = m ? Number(m[1]) : 0;
+    return n <= Date.now() ? n : 0;
+  };
 
   // Where a page should go: a URL, or null to stay. `rest` is the query and hash.
   const target = (path, rest = '') => {
@@ -127,14 +143,15 @@
     location[how](url);
   };
 
-  // `loaded`: a fresh page load, the only time old Reddit can have just sent you back.
+  // `loaded`: a fresh page load, the only time old Reddit can have just sent you back. A
+  // listing shown since then means it let you in, and you came back yourself.
   const onPage = loaded => {
     const path = location.pathname;
     const f = path.match(FEED);
     if (f) write(KEY_FEED, f[0]);
     const now = Date.now();
     if (loaded === true && !refused() && now - time(KEY_TRIED) < BOUNCE_MS
-      && (path === read(KEY_TRIED_PATH) || FRONT.test(path))) {
+      && (path === read(KEY_TRIED_PATH) || FRONT.test(path)) && seen() < time(KEY_TRIED)) {
       write(KEY_REFUSED, String(now)); // sent to old Reddit moments ago and back: turned away
     }
     const url = target(path, location.search + location.hash);

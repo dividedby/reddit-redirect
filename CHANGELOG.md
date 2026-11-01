@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+## [2.3] - 2026-11-01
+
+### Fixed
+
+- Opening `reddit.com` again within 15 seconds of being sent to old Reddit no longer counts as
+  old Reddit turning you away, which kept feeds on the new design for a day. It now counts
+  only if old Reddit didn't show you a listing in between. To tell the two apart, old Reddit
+  sets a cookie holding the time (`rhr_old_seen`) that lasts a minute.
+
 ## [2.2] - 2026-10-28
 
 ### Changed
