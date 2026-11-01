@@ -5,8 +5,8 @@ Reddit's new design, with subreddits on **Hot**.
 **New in 2.3**
 
 - **Opening `reddit.com` again soon after going to old Reddit no longer pauses it for a day.**
-  That only happens now if old Reddit really turned you away. To tell the two apart, old
-  Reddit sets a cookie holding the time (`rhr_old_seen`) that lasts a minute.
+  That only happens now if old Reddit didn't show you a listing first. To tell the two
+  apart, old Reddit sets a cookie holding the time (`rhr_old_seen`) that lasts a minute.
 - Good to know: Reddit's server sends `www.reddit.com/r/a+b/` to the front page before any
   script runs (and `www.reddit.com/r/all` when you're logged out), so those land on old
   Reddit's Hot. Links and bookmarks on `old.reddit.com` itself work.

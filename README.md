@@ -34,7 +34,8 @@ custom feed sorted by Hot.
   is limiting it to people who have used it in the last six months), feeds stay on the new
   design and the front page goes to your **custom feed** sorted by Hot: the custom feed you
   last opened. Old Reddit is tried again after a day. With no custom feed, the front page is
-  left as Reddit shows it. Opening `reddit.com` again yourself doesn't count.
+  left as Reddit shows it. Opening `reddit.com` again yourself doesn't count, as long as old
+  Reddit showed you a listing first.
 - Moving around inside the new design (the Home link, a subreddit, the Back button) is
   sent on the same way.
 - **Back still works:** the redirect replaces the page in your history instead of adding
