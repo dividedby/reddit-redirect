@@ -1,2 +1,3 @@
 .claude/gearbox-log.jsonl
 .DS_Store
+node_modules/
