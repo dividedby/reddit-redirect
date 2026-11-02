@@ -8,8 +8,7 @@ Reddit's new design, with subreddits on **Hot**.
 Reddit's new design has no Hot front page any more (only Best), has removed `r/all`, and
 sorts `r/popular` unreliably; old Reddit's front page shows Best when you're logged in.
 The new design shows posts and subreddits fine, but starts every subreddit on Best. If old
-Reddit turns you away, you stay on the new design and the front page falls back to your
-custom feed sorted by Hot.
+Reddit turns you away, feeds still show in the old design, on `www.reddit.com`.
 
 **Install:** [Greasy Fork](https://greasyfork.org/en/scripts/508344) · [Changelog](CHANGELOG.md)
 
@@ -20,9 +19,9 @@ custom feed sorted by Hot.
   `r/mod` and `r/random`. Posts and other pages under them open in the new design. Old
   Reddit needs you to be logged in.
 - **Two addresses can't be kept on `www.reddit.com`:** Reddit's server sends
-  `www.reddit.com/r/a+b/` to the front page before any script runs, and `www.reddit.com/r/all`
-  too when you're logged out, so you land on old Reddit's Hot instead. Links and bookmarks
-  on `old.reddit.com` itself work.
+  `www.reddit.com/r/a+b/` and `www.reddit.com/r/all` to the front page before any script
+  runs, so you land on old Reddit's Hot instead. Links and bookmarks on `old.reddit.com`
+  itself work.
 - The front page (`reddit.com/`, `/hot`, `/best`, and bare `old.reddit.com`) goes to
   `old.reddit.com/hot`. Anything after the address (like `?feed=home`) is kept.
 - **Subreddits open in the new design, sorted by Hot** (`/r/<name>/hot/`). A subreddit you
@@ -31,11 +30,14 @@ custom feed sorted by Hot.
   links to posts, subreddits and profiles open in the new design too, also with
   Ctrl/Cmd-click, middle-click and "Open in New Tab".
 - **If old Reddit sends you back** to the new design without showing you a listing (Reddit
-  is limiting it to people who have used it in the last six months), feeds stay on the new
-  design and the front page goes to your **custom feed** sorted by Hot: the custom feed you
-  last opened. Old Reddit is tried again after a day. With no custom feed, the front page is
-  left as Reddit shows it. Opening `reddit.com` again yourself doesn't count, as long as old
-  Reddit showed you a listing first.
+  is limiting it to people who have used it in the last six months), feeds stay on
+  `www.reddit.com` in the old design and the front page goes to `www.reddit.com/hot`. This
+  uses a cookie Reddit honors (`redesign_optout`), set on feed addresses only, so posts and
+  subreddits stay on the new design. It's undocumented, so Reddit could stop honoring it. If
+  so, the script notices: feeds stay on the new design and the front page goes to your
+  **custom feed** sorted by Hot (the custom feed you last opened), or, with none, is left as
+  Reddit shows it. Old Reddit is tried again after a day. Opening `reddit.com` again yourself
+  doesn't count, as long as old Reddit showed you a listing first.
 - Moving around inside the new design (the Home link, a subreddit, the Back button) is
   sent on the same way.
 - **Back still works:** the redirect replaces the page in your history instead of adding
@@ -45,6 +47,10 @@ custom feed sorted by Hot.
 - The remembered feed and the turn-away time stay in your browser's storage for reddit.com.
   The one thing Reddit can see is `rhr_old_seen`, a cookie holding the time old Reddit last
   showed you a listing. It's gone after a minute, and nothing is sent anywhere else.
+- Old Reddit sets a cookie (`redesign_optout`) that puts all of `www.reddit.com` in the old
+  design. The script removes it on old Reddit, so posts and subreddits really do open in the
+  new design. If old Reddit has turned you away, the script sets it itself on feed addresses
+  for a day.
 
 ## Installing
 

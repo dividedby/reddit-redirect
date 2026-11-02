@@ -12,7 +12,7 @@ const src = fs.readFileSync(path.join(__dirname, '..', 'redditRedirect.user.js')
 // later page loads), `cookies` the cookie jar both hosts share (name to value), `listing` whether
 // the page has old Reddit's #siteTable, `readyState` the document's, `now` the clock. Returns the
 // fakes so tests can fire events and read calls.
-const load = (pathname, { search = '', hash = '', withNavigation = true, store = {}, now = 1e12, noStorage = false, hostname = 'www.reddit.com', cookies = {}, listing = false, readyState = 'loading' } = {}) => {
+const load = (pathname, { search = '', hash = '', withNavigation = true, store = {}, now = 1e12, noStorage = false, hostname = 'www.reddit.com', cookies = {}, listing = false, readyState = 'loading', cookieStore, blockCookies = false, storageFull = false } = {}) => {
   const calls = { replace: [], assign: [] };
   const location = {
     pathname, search, hash, hostname,
@@ -28,20 +28,32 @@ const load = (pathname, { search = '', hash = '', withNavigation = true, store =
     visibilityState: 'visible',
     readyState,
     getElementById: id => (id === 'siteTable' && listing ? {} : null),
-    get cookie() { return Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '); },
+    get cookie() {
+      return Object.entries(cookies).filter(([k]) => {
+        const at = k.split('@')[1];
+        return !at || location.pathname === at || location.pathname.startsWith(at + '/');
+      }).map(([k, v]) => `${k.split('@')[0]}=${v}`).join('; ');
+    },
     set cookie(line) {
+      if (blockCookies) return;
       const [pair, ...attrs] = line.split('; ');
       const [k, v] = pair.split('=');
-      cookies[k] = v;
+      const path = attrs.find(a => a.startsWith('path=')).slice(5);
+      const key = path === '/' ? k : `${k}@${path}`;
+      if (attrs.includes('max-age=0')) delete cookies[key];
+      else cookies[key] = v;
       document.cookieAttrs = attrs;
     },
   };
   const navigation = withNavigation ? { addEventListener: on(navListeners) } : undefined;
-  const window = { addEventListener: on(winListeners), navigation };
+  const window = { addEventListener: on(winListeners), navigation, cookieStore };
   const deny = () => { throw new Error('SecurityError'); };
   const localStorage = noStorage ? { getItem: deny, setItem: deny } : {
     getItem: k => (k in store ? store[k] : null),
-    setItem: (k, v) => { store[k] = String(v); },
+    setItem: (k, v) => {
+      if (storageFull) throw new Error('QuotaExceededError');
+      store[k] = String(v);
+    },
   };
   const clock = { now };
   const FakeDate = { now: () => clock.now };
@@ -166,8 +178,8 @@ test('clicks elsewhere are left alone', () => {
   assert.deepEqual(t.calls.assign, []);
 });
 
-test('turned away from the front page with no custom feed: everything stays', () => {
-  const store = {};
+test('with the fallback off, a turn-away from the front page with no custom feed: everything stays', () => {
+  const store = { 'rhr:fallbackOff': String(1e12) };
   load('/', { store, now: 1e12 });
   const t = load('/', { store, now: 1e12 + 3000 });
   assert.deepEqual(t.calls.replace, []);
@@ -179,8 +191,8 @@ test('turned away from the front page with no custom feed: everything stays', ()
   assert.deepEqual(load('/r/x', { store, now: 1e12 + 6000 }).calls.replace, ['/r/x/hot/']);
 });
 
-test('turned away from a feed: it stays, and the front page uses the last custom feed', () => {
-  const store = {};
+test('with the fallback off, a turn-away from a feed: it stays, and the front page uses the last custom feed', () => {
+  const store = { 'rhr:fallbackOff': String(1e12) };
   assert.deepEqual(load('/user/Some_one/m/my-feed/new/', { store }).calls.replace,
     [OLD + '/user/Some_one/m/my-feed/new/']); // remembered on the way through
   assert.equal(store['rhr:feed'], '/user/Some_one/m/my-feed');
@@ -194,11 +206,208 @@ test('turned away from a feed: it stays, and the front page uses the last custom
   assert.deepEqual(t.calls.assign, ['/user/Some_one/m/my-feed/hot/']);
 });
 
+// Turned away moments ago; the fallback is on.
+const turnedAway = () => ({ 'rhr:oldRefused': String(1e12) });
+const FEED_COOKIES = ['/hot', '/new', '/rising', '/top', '/controversial', '/r/all', '/r/popular',
+  '/r/friends', '/r/mod', '/r/random', '/r/randnsfw'];
+
+test('fallback: a turn-away sends the front page to www/hot, with the cookie on feed paths only', () => {
+  const store = {};
+  const cookies = {};
+  load('/', { store, cookies, now: 1e12 }); // sent to old Reddit
+  const t = load('/', { store, cookies, now: 1e12 + 3000 }); // and straight back
+  assert.deepEqual(t.calls.replace, ['/hot']);
+  assert.equal(store['rhr:oldRefused'], String(1e12 + 3000));
+  assert.equal(store['rhr:hotTried'], String(1e12 + 3000));
+  for (const p of FEED_COOKIES) assert.equal(cookies[`redesign_optout@${p}`], 'true', p);
+  assert.equal(cookies.redesign_optout, undefined); // never for the whole site
+  assert.deepEqual(t.document.cookieAttrs.slice(1), ['max-age=86400', 'secure', 'samesite=lax']);
+  assert.deepEqual(load('/best', { store: turnedAway(), cookies, search: '?a=1', now: 1e12 + 3000 }).calls.replace, ['/hot?a=1']);
+});
+
+test('fallback: www/hot in the old design stays, and showing a listing clears the attempt', () => {
+  const store = { ...turnedAway(), 'rhr:hotTried': String(1e12) };
+  const cookies = { 'redesign_optout@/hot': 'true' };
+  const t = load('/hot/', { store, cookies, listing: true, now: 1e12 + 1000 });
+  assert.deepEqual(t.calls.replace, []);
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.equal(store['rhr:hotTried'], '0');
+  assert.equal(store['rhr:fallbackOff'], undefined);
+  // So opening reddit.com again straight away is fine.
+  assert.deepEqual(load('/', { store, cookies, now: 1e12 + 3000 }).calls.replace, ['/hot']);
+  assert.equal(store['rhr:fallbackOff'], undefined);
+});
+
+test('fallback: if www/hot comes straight back to the front page, the cookie isn\'t working: stop', () => {
+  const store = turnedAway();
+  assert.deepEqual(load('/', { store, now: 1e12 }).calls.replace, ['/hot']);
+  // Reddit answered /hot with a redirect to /: no listing was shown.
+  assert.deepEqual(load('/', { store, now: 1e12 + 1000 }).calls.replace, []);
+  assert.equal(store['rhr:fallbackOff'], String(1e12 + 1000));
+  store['rhr:feed'] = '/user/a/m/b'; // and today's behaviour is back
+  assert.deepEqual(load('/', { store, now: 1e12 + 2000 }).calls.replace, ['/user/a/m/b/hot/']);
+});
+
+test('fallback: a feed requested without the cookie is loaded again with it, once', () => {
+  const store = turnedAway();
+  const cookies = {};
+  assert.deepEqual(load('/user/a/m/b/top/', { store, cookies, search: '?t=day', now: 1e12 }).calls.replace, ['/user/a/m/b/top/?t=day']);
+  assert.equal(cookies['redesign_optout@/user/a/m/b'], 'true');
+  assert.deepEqual(load('/user/a/m/b/top/', { store, cookies, listing: true, now: 1e12 + 1000 }).calls.replace, []);
+  assert.deepEqual(load('/r/all-pics/', { store, cookies, now: 1e12 + 2000 }).calls.replace, ['/r/all-pics/']);
+  assert.equal(cookies['redesign_optout@/r/all-pics'], 'true');
+});
+
+test('fallback: the cookie is never scoped wider than the feed, whatever the case', () => {
+  const cookies = {};
+  load('/R/Popular/', { store: turnedAway(), cookies, now: 1e12 });
+  load('/User/a/m/b/', { store: turnedAway(), cookies, now: 1e12 });
+  load('/U/a/m/b/top/', { store: turnedAway(), cookies, now: 1e12 });
+  assert.equal(cookies['redesign_optout@/R/Popular'], 'true');
+  assert.equal(cookies['redesign_optout@/User/a/m/b'], 'true');
+  assert.equal(cookies['redesign_optout@/U/a/m/b'], 'true');
+  for (const wide of ['/R', '/User', '/U']) assert.equal(cookies[`redesign_optout@${wide}`], undefined, wide);
+});
+
+test('fallback: when it fails, the cookies go and the page moves on at once', () => {
+  const store = { ...turnedAway(), 'rhr:feed': '/user/a/m/b' };
+  const cookies = {};
+  load('/', { store, cookies, now: 1e12 }); // sets them, then sends you to /hot
+  assert.equal(cookies['redesign_optout@/hot'], 'true');
+  const t = load('/hot/', { store, cookies, now: 1e12 + 1000 }); // the cookie, but no listing
+  assert.deepEqual(t.calls.replace, []);
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.equal(store['rhr:fallbackOff'], String(1e12 + 1000));
+  assert.deepEqual(t.calls.replace, ['/user/a/m/b/hot/']);
+  for (const p of FEED_COOKIES) assert.equal(cookies[`redesign_optout@${p}`], undefined, p);
+});
+
+test('fallback: with storage that can be read but not written, nothing loops', () => {
+  // The front page can't remember trying /hot, so it doesn't try.
+  assert.deepEqual(load('/', { store: turnedAway(), storageFull: true, now: 1e12 }).calls.replace, []);
+  // A feed that gets the cookie but no listing can't record the failure, so it just stays.
+  const t = load('/new/', { store: turnedAway(), cookies: { 'redesign_optout@/new': 'true' }, storageFull: true, now: 1e12 });
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.deepEqual(t.calls.replace, []);
+});
+
+test('fallback: only a standard feed can decide the cookie has stopped working', () => {
+  // Reddit serves the new design at /R/Popular/ whatever the cookie, as seen on a real phone.
+  for (const [p, root] of [['/R/Popular/', '/R/Popular'], ['/user/a/m/b/', '/user/a/m/b'], ['/r/all-pics/', '/r/all-pics']]) {
+    const store = turnedAway();
+    const t = load(p, { store, cookies: { [`redesign_optout@${root}`]: 'true' }, now: 1e12 });
+    assert.deepEqual(t.calls.replace, [], p);
+    fire(t.docListeners, 'DOMContentLoaded');
+    assert.equal(store['rhr:fallbackOff'], undefined, p);
+    assert.deepEqual(t.calls.replace, [], p);
+    // Nor where a cookie for that spelling doesn't take.
+    const blocked = turnedAway();
+    assert.deepEqual(load(p, { store: blocked, blockCookies: true, now: 1e12 }).calls.replace, [], p);
+    assert.equal(blocked['rhr:fallbackOff'], undefined, p);
+  }
+});
+
+test('fallback: where cookies can\'t be set, nothing loops', () => {
+  const store = turnedAway();
+  assert.deepEqual(load('/r/popular/', { store, blockCookies: true, now: 1e12 }).calls.replace, []);
+  assert.equal(store['rhr:fallbackOff'], String(1e12));
+});
+
+test('fallback: a feed that gets the cookie but no listing turns the fallback off', () => {
+  const store = turnedAway();
+  const cookies = { 'redesign_optout@/r/popular': 'true' };
+  const t = load('/r/popular/', { store, cookies, now: 1e12 });
+  assert.deepEqual(t.calls.replace, []);
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.equal(store['rhr:fallbackOff'], String(1e12));
+});
+
+test('fallback: posts and subreddits stay in the new design, and a site-wide cookie is removed', () => {
+  const store = turnedAway();
+  const cookies = { redesign_optout: 'true' };
+  assert.deepEqual(load(POST, { store, cookies, now: 1e12 }).calls.replace, []);
+  assert.equal(cookies.redesign_optout, undefined);
+  assert.equal(cookies['redesign_optout@/r/x'], undefined); // not scoped to a subreddit either
+  assert.deepEqual(load('/r/x', { store, cookies, now: 1e12 }).calls.replace, ['/r/x/hot/']);
+  assert.equal(cookies['redesign_optout@/r/x'], undefined);
+  const listeners = {};
+  const cookieStore = { addEventListener: (type, fn) => { listeners[type] = fn; } };
+  load(POST, { store, cookies, cookieStore, now: 1e12 });
+  cookies.redesign_optout = 'true'; // a save on a feed page sets it again
+  listeners.change({ changed: [{ name: 'redesign_optout' }], deleted: [] });
+  assert.equal(cookies.redesign_optout, undefined);
+});
+
+test('fallback: in-app navigation to a feed loads it in the old design, and the logo goes to www/hot', () => {
+  const store = turnedAway();
+  const cookies = {};
+  const t = load(POST, { store, cookies, readyState: 'complete', now: 1e12 });
+  t.location.pathname = '/r/popular/';
+  fire(t.navListeners, 'navigatesuccess');
+  assert.deepEqual(t.calls.replace, ['/r/popular/']);
+  const e = clickEvent(true);
+  fire(t.docListeners, 'click', e);
+  assert.equal(e.prevented, true);
+  assert.deepEqual(t.calls.assign, ['/hot']);
+  // An old-design feed page isn't reloaded by a same-page navigation.
+  const old = load('/r/popular/', { store, cookies, listing: true, readyState: 'complete', now: 1e12 });
+  fire(old.navListeners, 'navigatesuccess');
+  assert.deepEqual(old.calls.replace, []);
+});
+
+test('without a turn-away, www doesn\'t set the cookie', () => {
+  const cookies = {};
+  load('/', { cookies });
+  load(POST, { cookies });
+  assert.deepEqual(cookies, {});
+});
+
 test('old Reddit is tried again a day after a turn-away', () => {
   const store = {};
   load('/', { store, now: 1e12 });
   load('/', { store, now: 1e12 + 3000 });
   assert.deepEqual(load('/r/all', { store, now: 1e12 + 3000 + DAY + 1 }).calls.replace, [OLD + '/r/all']);
+});
+
+test('old Reddit clears the cookie that would put posts and subreddits in the old design', () => {
+  const cookies = { redesign_optout: 'true', other: 'x' };
+  const t = load('/hot', { hostname: 'old.reddit.com', cookies, listing: true });
+  assert.equal(cookies.redesign_optout, undefined); // on load
+  assert.equal(cookies.other, 'x');
+  assert.deepEqual(t.document.cookieAttrs, ['domain=.reddit.com', 'path=/', 'max-age=0']);
+  // Reddit sets it again later (a save, say); each way off the page clears it again.
+  const leave = fn => { cookies.redesign_optout = 'true'; fn(); assert.equal(cookies.redesign_optout, undefined); };
+  leave(() => fire(t.docListeners, 'DOMContentLoaded'));
+  leave(() => { t.document.visibilityState = 'hidden'; fire(t.docListeners, 'visibilitychange'); });
+  t.document.visibilityState = 'visible';
+  leave(() => fire(t.docListeners, 'click', linkClick(POST).e));
+});
+
+test('old Reddit clears the cookie as soon as it appears, where the browser reports that', () => {
+  const cookies = {};
+  const listeners = {};
+  const cookieStore = { addEventListener: (type, fn) => { listeners[type] = fn; } };
+  load('/hot', { hostname: 'old.reddit.com', cookies, cookieStore });
+  cookies.redesign_optout = 'true';
+  listeners.change({ changed: [{ name: 'other' }], deleted: [] });
+  assert.equal(cookies.redesign_optout, 'true');
+  listeners.change({ changed: [{ name: 'redesign_optout' }], deleted: [] });
+  assert.equal(cookies.redesign_optout, undefined);
+});
+
+test('old Reddit leaves the cookie alone when a link stays on old Reddit', () => {
+  const cookies = {};
+  const t = load('/hot', { hostname: 'old.reddit.com', cookies, listing: true });
+  cookies.redesign_optout = 'true';
+  fire(t.docListeners, 'click', linkClick('/r/popular/').e);
+  assert.equal(cookies.redesign_optout, 'true');
+});
+
+test('www leaves the cookie alone', () => {
+  const cookies = { redesign_optout: 'true' };
+  const t = load(POST, { cookies });
+  fire(t.docListeners, 'visibilitychange');
+  assert.equal(cookies.redesign_optout, 'true');
 });
 
 test('old Reddit marks the time once it has shown a listing', () => {
@@ -232,7 +441,7 @@ test('coming back soon after old Reddit showed a listing is not a turn-away', ()
 });
 
 test('a listing shown before the trip doesn\'t hide a turn-away', () => {
-  const store = {};
+  const store = { 'rhr:fallbackOff': String(1e12) };
   const cookies = {};
   load('/hot', { hostname: 'old.reddit.com', cookies, listing: true, readyState: 'complete', now: 1e12 - 5000 });
   load('/r/popular/', { store, cookies, now: 1e12 });
@@ -242,7 +451,7 @@ test('a listing shown before the trip doesn\'t hide a turn-away', () => {
 
 test('a bad mark is ignored', () => {
   for (const bad of ['', 'x', '1e99', '-1', String(2e12)]) {
-    const store = {};
+    const store = { 'rhr:fallbackOff': String(1e12) };
     const cookies = { rhr_old_seen: bad, other: '9'.repeat(20) };
     load('/', { store, cookies, now: 1e12 });
     assert.deepEqual(load('/', { store, cookies, now: 1e12 + 3000 }).calls.replace, [], bad);
@@ -265,7 +474,7 @@ test('other pages soon after, or the same page later, are not a turn-away', () =
 test('bad stored values are ignored', () => {
   const store = { 'rhr:oldRefused': 'soon', 'rhr:oldTried': '-5', 'rhr:feed': 'javascript:alert(1)' };
   assert.deepEqual(load('/', { store }).calls.replace, [HOT]);
-  const s2 = { 'rhr:oldRefused': String(1e12), 'rhr:feed': '//evil.example/user/a/m/b' };
+  const s2 = { 'rhr:oldRefused': String(1e12), 'rhr:feed': '//evil.example/user/a/m/b', 'rhr:fallbackOff': String(1e12) };
   assert.deepEqual(load('/', { store: s2, now: 1e12 + 1000 }).calls.replace, []);
 });
 
