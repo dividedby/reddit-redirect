@@ -12,7 +12,7 @@ const src = fs.readFileSync(path.join(__dirname, '..', 'redditRedirect.user.js')
 // later page loads), `cookies` the cookie jar both hosts share (name to value), `listing` whether
 // the page has old Reddit's #siteTable, `readyState` the document's, `now` the clock. Returns the
 // fakes so tests can fire events and read calls.
-const load = (pathname, { search = '', hash = '', withNavigation = true, store = {}, now = 1e12, noStorage = false, hostname = 'www.reddit.com', cookies = {}, listing = false, readyState = 'loading', cookieStore, blockCookies = false } = {}) => {
+const load = (pathname, { search = '', hash = '', withNavigation = true, store = {}, now = 1e12, noStorage = false, hostname = 'www.reddit.com', cookies = {}, listing = false, readyState = 'loading', cookieStore, blockCookies = false, storageFull = false } = {}) => {
   const calls = { replace: [], assign: [] };
   const location = {
     pathname, search, hash, hostname,
@@ -50,7 +50,10 @@ const load = (pathname, { search = '', hash = '', withNavigation = true, store =
   const deny = () => { throw new Error('SecurityError'); };
   const localStorage = noStorage ? { getItem: deny, setItem: deny } : {
     getItem: k => (k in store ? store[k] : null),
-    setItem: (k, v) => { store[k] = String(v); },
+    setItem: (k, v) => {
+      if (storageFull) throw new Error('QuotaExceededError');
+      store[k] = String(v);
+    },
   };
   const clock = { now };
   const FakeDate = { now: () => clock.now };
@@ -277,6 +280,15 @@ test('fallback: when it fails, the cookies go and the page moves on at once', ()
   assert.equal(store['rhr:fallbackOff'], String(1e12 + 1000));
   assert.deepEqual(t.calls.replace, ['/user/a/m/b/hot/']);
   for (const p of FEED_COOKIES) assert.equal(cookies[`redesign_optout@${p}`], undefined, p);
+});
+
+test('fallback: with storage that can be read but not written, nothing loops', () => {
+  // The front page can't remember trying /hot, so it doesn't try.
+  assert.deepEqual(load('/', { store: turnedAway(), storageFull: true, now: 1e12 }).calls.replace, []);
+  // A feed that gets the cookie but no listing can't record the failure, so it just stays.
+  const t = load('/new/', { store: turnedAway(), cookies: { 'redesign_optout@/new': 'true' }, storageFull: true, now: 1e12 });
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.deepEqual(t.calls.replace, []);
 });
 
 test('fallback: where cookies can\'t be set, nothing loops', () => {

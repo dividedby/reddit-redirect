@@ -185,6 +185,8 @@
       write(KEY_TRIED_PATH, path);
     } else if (isHot(url.split(/[?#]/)[0])) {
       write(KEY_HOT_TRIED, String(Date.now()));
+      // Without a record of trying, a /hot that comes straight back would go round forever.
+      if (!time(KEY_HOT_TRIED)) return;
     }
     location[how](url);
   };
@@ -217,7 +219,7 @@
           write(KEY_HOT_TRIED, '0');
         } else {
           fallbackFailed();
-          onPage();
+          if (!fallback()) onPage(); // if that couldn't be recorded, moving on could loop
         }
       };
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', check);
