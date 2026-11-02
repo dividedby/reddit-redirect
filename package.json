@@ -1,0 +1,11 @@
+{
+  "name": "reddit-redirect",
+  "private": true,
+  "devDependencies": {
+    "prettier": "3.9.10"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  }
+}
