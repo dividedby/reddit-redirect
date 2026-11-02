@@ -2,6 +2,13 @@ Reddit's feeds open in **old Reddit**, with the front page on **Hot** instead of
 default **Best**, and the Reddit logo takes you to Hot too. Posts and subreddits open in
 Reddit's new design, with subreddits on **Hot**.
 
+**New in 2.5**
+
+- **If old Reddit turns you away, feeds still show in the old design**, on `www.reddit.com`,
+  and the front page goes to `www.reddit.com/hot`. Posts and subreddits stay on the new design.
+  This uses an undocumented cookie Reddit honors, so it could stop working. If it does, feeds
+  stay on the new design and the front page goes to your custom feed, as before.
+
 **New in 2.4**
 
 - **Posts, subreddits and profiles now really open in the new design.** Visiting old Reddit
