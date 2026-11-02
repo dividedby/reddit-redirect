@@ -8,10 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+## [2.3] - 2026-11-01
+
+### Fixed
+
+- Opening `reddit.com` again within 15 seconds of being sent to old Reddit no longer counts as
+  old Reddit turning you away, which kept feeds on the new design for a day. It now counts
+  only if old Reddit didn't show you a listing in between. To tell the two apart, old Reddit
+  sets a cookie holding the time (`rhr_old_seen`) that lasts a minute.
+
+## [2.2] - 2026-10-28
+
 ### Changed
 
 - Only Reddit's feeds open in old Reddit now: the front page (on Hot), `r/all`, `r/popular`,
-  combined subreddits (`r/a+b`) and custom feeds. Posts, subreddits, profiles, search and
+  combined subreddits (`r/a+b`), custom feeds, and old Reddit's `r/friends`, `r/mod` and
+  `r/random`. Posts (also those reached through a feed), subreddits, profiles, search and
   every other page stay on Reddit's new design. Reddit's new design has removed `r/all`,
   sorts `r/popular` unreliably and still has no Hot front page, but it shows posts and
   subreddits fine.

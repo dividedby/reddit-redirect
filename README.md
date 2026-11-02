@@ -16,8 +16,13 @@ custom feed sorted by Hot.
 ## How it works
 
 - **Feeds open in old Reddit**, before the page draws: the front page, `r/all`,
-  `r/popular`, combined subreddits (`r/a+b`) and custom feeds. Old Reddit needs you to be
-  logged in.
+  `r/popular`, combined subreddits (`r/a+b`), custom feeds, and old Reddit's `r/friends`,
+  `r/mod` and `r/random`. Posts and other pages under them open in the new design. Old
+  Reddit needs you to be logged in.
+- **Two addresses can't be kept on `www.reddit.com`:** Reddit's server sends
+  `www.reddit.com/r/a+b/` to the front page before any script runs, and `www.reddit.com/r/all`
+  too when you're logged out, so you land on old Reddit's Hot instead. Links and bookmarks
+  on `old.reddit.com` itself work.
 - The front page (`reddit.com/`, `/hot`, `/best`, and bare `old.reddit.com`) goes to
   `old.reddit.com/hot`. Anything after the address (like `?feed=home`) is kept.
 - **Subreddits open in the new design, sorted by Hot** (`/r/<name>/hot/`). A subreddit you
@@ -25,18 +30,21 @@ custom feed sorted by Hot.
 - **Posts, profiles, search and every other page stay in the new design.** On old Reddit,
   links to posts, subreddits and profiles open in the new design too, also with
   Ctrl/Cmd-click, middle-click and "Open in New Tab".
-- **If old Reddit sends you back** to the new design (Reddit is limiting it to people who
-  have used it in the last six months), feeds stay on the new design and the front page
-  goes to your **custom feed** sorted by Hot: the custom feed you last opened. Old Reddit
-  is tried again after a day. With no custom feed, the front page is left as Reddit shows it.
+- **If old Reddit sends you back** to the new design without showing you a listing (Reddit
+  is limiting it to people who have used it in the last six months), feeds stay on the new
+  design and the front page goes to your **custom feed** sorted by Hot: the custom feed you
+  last opened. Old Reddit is tried again after a day. With no custom feed, the front page is
+  left as Reddit shows it. Opening `reddit.com` again yourself doesn't count, as long as old
+  Reddit showed you a listing first.
 - Moving around inside the new design (the Home link, a subreddit, the Back button) is
   sent on the same way.
 - **Back still works:** the redirect replaces the page in your history instead of adding
   a step.
 - A plain click on the Reddit logo goes to Hot. Ctrl/Cmd-click and middle-click are left
   to your browser (open in a new tab as usual).
-- Nothing is sent anywhere: the remembered feed and the turn-away time stay in your
-  browser's storage for reddit.com.
+- The remembered feed and the turn-away time stay in your browser's storage for reddit.com.
+  The one thing Reddit can see is `rhr_old_seen`, a cookie holding the time old Reddit last
+  showed you a listing. It's gone after a minute, and nothing is sent anywhere else.
 
 ## Installing
 
