@@ -3,7 +3,7 @@
 // @namespace   https://greasyfork.org/en/users/594496-divided-by
 // @author      dividedby
 // @description Opens Reddit's feeds in old Reddit, with the front page on Hot (or your custom feed if old Reddit turns you away), and subreddits on Hot. The logo goes there too
-// @version     2.4
+// @version     2.5
 // @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/dividedby/reddit-redirect
 // @supportURL  https://github.com/dividedby/reddit-redirect/issues
@@ -27,9 +27,10 @@
 //     old Reddit (OLD_FEED);
 //   - a subreddit opens on the new design sorted by Hot (/r/x/hot/), and on old Reddit,
 //     links to posts, subreddits and profiles open on the new design;
-//   - if old Reddit sent you back here without showing you a listing, feeds stay on the new
-//     design and the front page goes to your custom feed sorted by Hot (the custom feed you
-//     last opened here), or, with none, is left alone.
+//   - if old Reddit sent you back here without showing you a listing, feeds stay here in the
+//     old design, using a cookie Reddit honors, and the front page goes to /hot. If that stops
+//     working, feeds stay on the new design and the front page goes to your custom feed sorted
+//     by Hot (the custom feed you last opened here), or, with none, is left alone.
 // A turn-away from old Reddit is remembered for a day, then old Reddit is tried again.
 
 (() => {
@@ -50,6 +51,21 @@
   // separate. It's what tells coming back on purpose from being turned away.
   const SEEN_COOKIE = 'rhr_old_seen';
 
+  // With this cookie, www serves the old design. Old Reddit's pages set it for all of reddit.com
+  // (loading any page does, and so does saving a post), which would put posts and subreddits
+  // in the old design too.
+  const OPT_OUT = 'redesign_optout';
+  const clearOptOut = () => {
+    document.cookie = `${OPT_OUT}=; domain=.reddit.com; path=/; max-age=0`;
+  };
+  // A save sets it again while you're on the page. Clear it as it appears, where the browser
+  // can say so: a request you start next goes out before the page can react to leaving.
+  const clearOptOutAsItAppears = when => {
+    window.cookieStore?.addEventListener('change', e => {
+      if (when() && e.changed.some(c => c.name === OPT_OUT)) clearOptOut();
+    });
+  };
+
   // Gives a clicked link its new address just before the browser (or Reddit's own router)
   // follows it, so Ctrl/Cmd-click, middle-click and "Open in New Tab" get it too.
   // `to(path)` returns the new address without the query and hash, or null to leave it.
@@ -68,17 +84,8 @@
   // On old Reddit, the bare front page (where the logo points) is sent to Hot, and links to
   // anything but a feed open on the new design.
   if (location.hostname === 'old.reddit.com') {
-    // Old Reddit's pages set this cookie for all of reddit.com (loading any page does, and so
-    // does saving a post), and with it www shows posts and subreddits in the old design too.
-    const clearOptOut = () => {
-      document.cookie = 'redesign_optout=; domain=.reddit.com; path=/; max-age=0';
-    };
     clearOptOut();
-    // A save sets it again while you're on the page. Clear it as it appears, where the browser
-    // can say so: a request you start next goes out before the page can react to leaving.
-    window.cookieStore?.addEventListener('change', e => {
-      if (e.changed.some(c => c.name === 'redesign_optout')) clearOptOut();
-    });
+    clearOptOutAsItAppears(() => true);
     const toHot = () => {
       if (location.pathname === '/') location.replace('/hot' + location.search + location.hash);
     };
@@ -108,12 +115,20 @@
   const KEY_TRIED_PATH = 'rhr:oldPath'; // and from which page
   const KEY_REFUSED = 'rhr:oldRefused'; // when old Reddit last sent you back (ms)
   const KEY_FEED = 'rhr:feed';          // custom feed path, e.g. /user/name/m/feed
+  const KEY_HOT_TRIED = 'rhr:hotTried'; // when we last sent you to www/hot, until it shows a listing
+  const KEY_FALLBACK_OFF = 'rhr:fallbackOff'; // when feeds in the old design here last failed (ms)
   const BOUNCE_MS = 15e3;               // back here this soon = sent back
   const RETRY_MS = 864e5;               // try old Reddit again after a day
 
   // The front page under any of its names; '/hot' and '/best' show Best on the new design.
   const FRONT = /^\/(hot|best)?\/?$/;
   const FEED = /^\/user\/[\w-]+\/m\/[\w-]+/;
+  // Where the cookie goes when old Reddit has turned you away: on these paths only, so posts and
+  // subreddits stay on the new design. The front page can't have it (its path is every path),
+  // so it goes to /hot. Other feeds (a custom feed, r/all-x) get it as you open them.
+  const FEED_PATHS = ['/hot', '/new', '/rising', '/top', '/controversial', '/r/all', '/r/popular',
+    '/r/friends', '/r/mod', '/r/random', '/r/randnsfw'];
+  const feedRoot = path => path.match(/^\/(r\/[^/]+|u(ser)?\/[\w-]+\/m\/[\w-]+|\w+)/)[0];
 
   // Storage can throw (blocked site data, some private modes); without it the script still
   // redirects, it just can't notice a turn-away or remember a feed.
@@ -132,6 +147,10 @@
     return typeof f === 'string' && FEED.test(f) ? f.match(FEED)[0] : null;
   };
   const refused = () => Date.now() - time(KEY_REFUSED) <= RETRY_MS;
+  const fallback = () => refused() && Date.now() - time(KEY_FALLBACK_OFF) > RETRY_MS;
+  const fallbackFailed = () => write(KEY_FALLBACK_OFF, String(Date.now()));
+  const hasOptOut = () => new RegExp(`(?:^|; )${OPT_OUT}=`).test(document.cookie);
+  const isHot = path => /^\/hot\/?$/.test(path);
   // When old Reddit last showed you a listing, or 0.
   const seen = () => {
     const m = document.cookie.match(new RegExp(`(?:^|; )${SEEN_COOKIE}=(\\d+)(?:;|$)`));
@@ -147,6 +166,7 @@
       return OLD_FEED.test(path) ? OLD + path + rest : null;
     }
     if (!FRONT.test(path)) return null;
+    if (fallback()) return isHot(path) ? null : '/hot' + rest;
     const f = feed();
     return f ? f + '/hot/' : null;
   };
@@ -155,8 +175,45 @@
     if (url.startsWith(OLD)) {
       write(KEY_TRIED, String(Date.now()));
       write(KEY_TRIED_PATH, path);
+    } else if (isHot(url.split(/[?#]/)[0])) {
+      write(KEY_HOT_TRIED, String(Date.now()));
     }
     location[how](url);
+  };
+
+  // Turned away: a feed here in the old design. Returns false if the page is being loaded again.
+  const showFeedsOld = (path, rest, loaded) => {
+    const carried = hasOptOut(); // one this page can see went out with its request
+    clearOptOut();
+    const feedPage = OLD_FEED.test(path) && !(FRONT.test(path) && !isHot(path));
+    for (const p of new Set([...FEED_PATHS, ...(feedPage ? [feedRoot(path)] : [])])) {
+      document.cookie = `${OPT_OUT}=true; path=${p}; max-age=${RETRY_MS / 1000}; secure; samesite=lax`;
+    }
+    if (FRONT.test(path) && !isHot(path)) {
+      // Without the cookie Reddit answers /hot with a redirect here. Don't loop on that.
+      if (loaded === true && Date.now() - time(KEY_HOT_TRIED) < BOUNCE_MS) fallbackFailed();
+      return true;
+    }
+    if (!feedPage) return true;
+    const shown = loaded === true ? carried
+      : document.readyState === 'loading' || !!document.getElementById('siteTable');
+    if (!shown) {
+      if (!hasOptOut()) { // cookies are blocked
+        fallbackFailed();
+        return true;
+      }
+      location.replace(path + rest);
+      return false;
+    }
+    if (loaded === true) {
+      const check = () => {
+        if (document.getElementById('siteTable')) write(KEY_HOT_TRIED, '0');
+        else fallbackFailed();
+      };
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', check);
+      else check();
+    }
+    return true;
   };
 
   // `loaded`: a fresh page load, the only time old Reddit can have just sent you back. A
@@ -170,11 +227,14 @@
       && (path === read(KEY_TRIED_PATH) || FRONT.test(path)) && seen() < time(KEY_TRIED)) {
       write(KEY_REFUSED, String(now)); // sent to old Reddit moments ago and back: turned away
     }
-    const url = target(path, location.search + location.hash);
+    const rest = location.search + location.hash;
+    if (fallback() && !showFeedsOld(path, rest, loaded)) return;
+    const url = target(path, rest);
     // replace() so Back skips this page instead of landing on it and redirecting again
     if (url) go('replace', url, path);
   };
 
+  clearOptOutAsItAppears(fallback);
   onPage(true);
 
   document.addEventListener('visibilitychange', () => {

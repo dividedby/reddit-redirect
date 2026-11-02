@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- If old Reddit turns you away, feeds now stay on `www.reddit.com` in the old design, and the
+  front page goes to `www.reddit.com/hot`, using a cookie Reddit honors (`redesign_optout`) on
+  feed addresses only. Posts and subreddits stay on the new design. If the cookie stops
+  working, you get the previous behaviour: feeds on the new design and the front page on your
+  custom feed.
+
 ## [2.4] - 2026-11-01
 
 ### Fixed
