@@ -255,6 +255,30 @@ test('fallback: a feed requested without the cookie is loaded again with it, onc
   assert.equal(cookies['redesign_optout@/r/all-pics'], 'true');
 });
 
+test('fallback: the cookie is never scoped wider than the feed, whatever the case', () => {
+  const cookies = {};
+  load('/R/Popular/', { store: turnedAway(), cookies, now: 1e12 });
+  load('/User/a/m/b/', { store: turnedAway(), cookies, now: 1e12 });
+  load('/U/a/m/b/top/', { store: turnedAway(), cookies, now: 1e12 });
+  assert.equal(cookies['redesign_optout@/R/Popular'], 'true');
+  assert.equal(cookies['redesign_optout@/User/a/m/b'], 'true');
+  assert.equal(cookies['redesign_optout@/U/a/m/b'], 'true');
+  for (const wide of ['/R', '/User', '/U']) assert.equal(cookies[`redesign_optout@${wide}`], undefined, wide);
+});
+
+test('fallback: when it fails, the cookies go and the page moves on at once', () => {
+  const store = { ...turnedAway(), 'rhr:feed': '/user/a/m/b' };
+  const cookies = {};
+  load('/', { store, cookies, now: 1e12 }); // sets them, then sends you to /hot
+  assert.equal(cookies['redesign_optout@/hot'], 'true');
+  const t = load('/hot/', { store, cookies, now: 1e12 + 1000 }); // the cookie, but no listing
+  assert.deepEqual(t.calls.replace, []);
+  fire(t.docListeners, 'DOMContentLoaded');
+  assert.equal(store['rhr:fallbackOff'], String(1e12 + 1000));
+  assert.deepEqual(t.calls.replace, ['/user/a/m/b/hot/']);
+  for (const p of FEED_COOKIES) assert.equal(cookies[`redesign_optout@${p}`], undefined, p);
+});
+
 test('fallback: where cookies can\'t be set, nothing loops', () => {
   const store = turnedAway();
   assert.deepEqual(load('/r/popular/', { store, blockCookies: true, now: 1e12 }).calls.replace, []);

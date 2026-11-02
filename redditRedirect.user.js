@@ -2,7 +2,7 @@
 // @name        Reddit Hot Redirect with Logo Click Handler
 // @namespace   https://greasyfork.org/en/users/594496-divided-by
 // @author      dividedby
-// @description Opens Reddit's feeds in old Reddit, with the front page on Hot (or your custom feed if old Reddit turns you away), and subreddits on Hot. The logo goes there too
+// @description Opens Reddit's feeds in old Reddit, with the front page on Hot, and subreddits on Hot. The logo goes there too
 // @version     2.5
 // @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/dividedby/reddit-redirect
@@ -128,7 +128,12 @@
   // so it goes to /hot. Other feeds (a custom feed, r/all-x) get it as you open them.
   const FEED_PATHS = ['/hot', '/new', '/rising', '/top', '/controversial', '/r/all', '/r/popular',
     '/r/friends', '/r/mod', '/r/random', '/r/randnsfw'];
-  const feedRoot = path => path.match(/^\/(r\/[^/]+|u(ser)?\/[\w-]+\/m\/[\w-]+|\w+)/)[0];
+  const feedRoot = path => path.match(/^\/(r\/[^/]+|u(ser)?\/[\w-]+\/m\/[\w-]+|\w+)/i)[0];
+  const setOptOut = (paths, maxAge) => {
+    for (const p of paths) {
+      document.cookie = `${OPT_OUT}=${maxAge ? 'true' : ''}; path=${p}; max-age=${maxAge}; secure; samesite=lax`;
+    }
+  };
 
   // Storage can throw (blocked site data, some private modes); without it the script still
   // redirects, it just can't notice a turn-away or remember a feed.
@@ -148,7 +153,10 @@
   };
   const refused = () => Date.now() - time(KEY_REFUSED) <= RETRY_MS;
   const fallback = () => refused() && Date.now() - time(KEY_FALLBACK_OFF) > RETRY_MS;
-  const fallbackFailed = () => write(KEY_FALLBACK_OFF, String(Date.now()));
+  const fallbackFailed = () => {
+    write(KEY_FALLBACK_OFF, String(Date.now()));
+    setOptOut(FEED_PATHS, 0);
+  };
   const hasOptOut = () => new RegExp(`(?:^|; )${OPT_OUT}=`).test(document.cookie);
   const isHot = path => /^\/hot\/?$/.test(path);
   // When old Reddit last showed you a listing, or 0.
@@ -186,9 +194,7 @@
     const carried = hasOptOut(); // one this page can see went out with its request
     clearOptOut();
     const feedPage = OLD_FEED.test(path) && !(FRONT.test(path) && !isHot(path));
-    for (const p of new Set([...FEED_PATHS, ...(feedPage ? [feedRoot(path)] : [])])) {
-      document.cookie = `${OPT_OUT}=true; path=${p}; max-age=${RETRY_MS / 1000}; secure; samesite=lax`;
-    }
+    setOptOut(new Set([...FEED_PATHS, ...(feedPage ? [feedRoot(path)] : [])]), RETRY_MS / 1000);
     if (FRONT.test(path) && !isHot(path)) {
       // Without the cookie Reddit answers /hot with a redirect here. Don't loop on that.
       if (loaded === true && Date.now() - time(KEY_HOT_TRIED) < BOUNCE_MS) fallbackFailed();
@@ -207,8 +213,12 @@
     }
     if (loaded === true) {
       const check = () => {
-        if (document.getElementById('siteTable')) write(KEY_HOT_TRIED, '0');
-        else fallbackFailed();
+        if (document.getElementById('siteTable')) {
+          write(KEY_HOT_TRIED, '0');
+        } else {
+          fallbackFailed();
+          onPage();
+        }
       };
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', check);
       else check();
