@@ -264,6 +264,11 @@
     for (const li of buttons.children) if (!li.textContent.trim()) li.classList.add('rr-empty');
     // Full width under the post, beside nothing (the thumbnail sits next to the title only).
     thing.querySelector(':scope > .clearleft')?.before(row, buttons);
+    // Reddit puts its share panel and action forms after `.entry .buttons`, and takes the link
+    // to share from `.entry a.comments`, so leave a hidden list with those there.
+    const anchor = el('ul', 'flat-list buttons rr-buttons-anchor');
+    if (comments) anchor.append(comments.cloneNode(false));
+    entry.append(anchor);
   };
 
   // One listener for every "more" button.

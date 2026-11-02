@@ -179,6 +179,25 @@ html.rr .rr-menu li a, html.rr .rr-menu li form a {
   background: var(--pill); color: var(--text); font: 600 12px var(--font); text-decoration: none;
 }
 
+html.rr .rr-buttons-anchor { display: none; }
+
+/* Reddit's share panel */
+html.rr .post-sharing {
+  margin: 8px 0 4px; padding: 16px; border: 0; border-radius: 12px; background: var(--pill);
+  color: var(--text); font: 400 14px var(--font);
+}
+html.rr .post-sharing-label { color: var(--muted); }
+html.rr .post-sharing .c-close { overflow: hidden; text-indent: 200%; white-space: nowrap; }
+html.rr .post-sharing-link-input { width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text); border: 1px solid var(--line); }
+
+/* Reddit's dialogs (report, crosspost) assume a desktop width, and its script centres them
+   with an inline transform worked out for that width. */
+html.rr .modal-dialog {
+  position: relative; top: auto !important; left: auto !important; width: auto !important;
+  max-width: calc(100vw - 16px); margin: 8px auto !important; transform: none !important;
+}
+html.rr .modal-content, html.rr .modal-iframe { box-sizing: border-box; width: 100% !important; max-width: 100%; }
+
 /* expanded media and text from Reddit's own expando */
 html.rr .expando { margin: 6px 0; max-width: 100%; }
 html.rr .expando .md { max-width: none; font-size: 14px; color: var(--text); }
