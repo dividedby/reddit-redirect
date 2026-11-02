@@ -33,83 +33,87 @@
 // A turn-away from old Reddit is remembered for a day, then old Reddit is tried again.
 
 (() => {
-  'use strict';
+  "use strict";
 
-  const OLD = 'https://old.reddit.com';
-  const NEW = 'https://www.reddit.com';
+  const OLD = "https://old.reddit.com";
+  const NEW = "https://www.reddit.com";
 
   // Feeds kept on old Reddit: the front page, r/all (with r/all-x filters), r/popular, old
   // Reddit's r/friends, r/mod and r/random, combined subreddits and custom feeds, each with an
   // optional sort. A post or any other page under one of them is not a feed.
-  const OLD_FEED = /^\/((hot|new|rising|top|controversial|best)\/?)?$|^\/(r\/(all(-\w+)*|popular|friends|mod|random|randnsfw|\w+(\+\w+)+)|u(ser)?\/[\w-]+\/m\/[\w-]+)(\/(hot|new|rising|top|controversial|best|gilded))?\/?$/i;
+  const OLD_FEED =
+    /^\/((hot|new|rising|top|controversial|best)\/?)?$|^\/(r\/(all(-\w+)*|popular|friends|mod|random|randnsfw|\w+(\+\w+)+)|u(ser)?\/[\w-]+\/m\/[\w-]+)(\/(hot|new|rising|top|controversial|best|gilded))?\/?$/i;
   // A subreddit with no sort chosen, which the new design shows as Best.
-  const isSub = path => /^\/r\/\w+\/?$/i.test(path) && !OLD_FEED.test(path);
-  const hot = path => path.replace(/\/?$/, '/hot/');
+  const isSub = (path) => /^\/r\/\w+\/?$/i.test(path) && !OLD_FEED.test(path);
+  const hot = (path) => path.replace(/\/?$/, "/hot/");
 
   // Old Reddit's listing shown: a time, in a cookie because the two hosts' localStorage is
   // separate. It's what tells coming back on purpose from being turned away.
-  const SEEN_COOKIE = 'rhr_old_seen';
+  const SEEN_COOKIE = "rhr_old_seen";
 
   // Gives a clicked link its new address just before the browser (or Reddit's own router)
   // follows it, so Ctrl/Cmd-click, middle-click and "Open in New Tab" get it too.
   // `to(path)` returns the new address without the query and hash, or null to leave it.
-  const retargetLinks = to => {
-    const retarget = e => {
-      const a = e.composedPath().find(n => n.localName === 'a' && n.href);
+  const retargetLinks = (to) => {
+    const retarget = (e) => {
+      const a = e.composedPath().find((n) => n.localName === "a" && n.href);
       if (!a || a.hostname !== location.hostname) return;
       const url = to(a.pathname);
       if (url) a.href = url + a.search + a.hash;
     };
-    for (const type of ['click', 'auxclick', 'contextmenu']) {
+    for (const type of ["click", "auxclick", "contextmenu"]) {
       document.addEventListener(type, retarget, true);
     }
   };
 
   // On old Reddit, the bare front page (where the logo points) is sent to Hot, and links to
   // anything but a feed open on the new design.
-  if (location.hostname === 'old.reddit.com') {
+  if (location.hostname === "old.reddit.com") {
     // Old Reddit's pages set this cookie for all of reddit.com (loading any page does, and so
     // does saving a post), and with it www shows posts and subreddits in the old design too.
     const clearOptOut = () => {
-      document.cookie = 'redesign_optout=; domain=.reddit.com; path=/; max-age=0';
+      document.cookie =
+        "redesign_optout=; domain=.reddit.com; path=/; max-age=0";
     };
     clearOptOut();
     // A save sets it again while you're on the page. Clear it as it appears, where the browser
     // can say so: a request you start next goes out before the page can react to leaving.
-    window.cookieStore?.addEventListener('change', e => {
-      if (e.changed.some(c => c.name === 'redesign_optout')) clearOptOut();
+    window.cookieStore?.addEventListener("change", (e) => {
+      if (e.changed.some((c) => c.name === "redesign_optout")) clearOptOut();
     });
     const toHot = () => {
-      if (location.pathname === '/') location.replace('/hot' + location.search + location.hash);
+      if (location.pathname === "/")
+        location.replace("/hot" + location.search + location.hash);
     };
     toHot();
     // Safari can load a page you're typing before you open it ("Preload Top Hit"); a
     // redirect made then can be lost, so check again once the page is shown.
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') toHot();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") toHot();
       else clearOptOut();
     });
-    retargetLinks(path => {
+    retargetLinks((path) => {
       if (!/^\/(r|u|user)\//i.test(path) || OLD_FEED.test(path)) return null;
       clearOptOut();
       return NEW + (isSub(path) ? hot(path) : path);
     });
     const markSeen = () => {
       clearOptOut();
-      if (!document.getElementById('siteTable')) return; // the log-in page, say
+      if (!document.getElementById("siteTable")) return; // the log-in page, say
       document.cookie = `${SEEN_COOKIE}=${Date.now()}; domain=.reddit.com; path=/; max-age=60; secure; samesite=lax`;
     };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', markSeen);
+    if (document.readyState === "loading")
+      document.addEventListener("DOMContentLoaded", markSeen);
     else markSeen();
     return;
   }
 
-  const KEY_TRIED = 'rhr:oldTried';     // when we last sent you to old Reddit (ms)
-  const KEY_TRIED_PATH = 'rhr:oldPath'; // and from which page
-  const KEY_REFUSED = 'rhr:oldRefused'; // when old Reddit last sent you back (ms)
-  const KEY_FEED = 'rhr:feed';          // custom feed path, e.g. /user/name/m/feed
-  const BOUNCE_MS = 15e3;               // back here this soon = sent back
-  const RETRY_MS = 864e5;               // try old Reddit again after a day
+  const KEY_TRIED = "rhr:oldTried"; // when we last sent you to old Reddit (ms)
+  const KEY_TRIED_PATH = "rhr:oldPath"; // and from which page
+  const KEY_REFUSED = "rhr:oldRefused"; // when old Reddit last sent you back (ms)
+  const KEY_FEED = "rhr:feed"; // custom feed path, e.g. /user/name/m/feed
+  const BOUNCE_MS = 15e3; // back here this soon = sent back
+  const RETRY_MS = 864e5; // try old Reddit again after a day
 
   // The front page under any of its names; '/hot' and '/best' show Best on the new design.
   const FRONT = /^\/(hot|best)?\/?$/;
@@ -117,38 +121,48 @@
 
   // Storage can throw (blocked site data, some private modes); without it the script still
   // redirects, it just can't notice a turn-away or remember a feed.
-  const read = key => {
-    try { return localStorage.getItem(key); } catch { return null; } // intended: see above
+  const read = (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    } // intended: see above
   };
   const write = (key, value) => {
-    try { localStorage.setItem(key, value); } catch { /* intended: see above */ }
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* intended: see above */
+    }
   };
-  const time = key => {
+  const time = (key) => {
     const n = Number(read(key));
     return Number.isFinite(n) && n > 0 ? n : 0;
   };
   const feed = () => {
     const f = read(KEY_FEED);
-    return typeof f === 'string' && FEED.test(f) ? f.match(FEED)[0] : null;
+    return typeof f === "string" && FEED.test(f) ? f.match(FEED)[0] : null;
   };
   const refused = () => Date.now() - time(KEY_REFUSED) <= RETRY_MS;
   // When old Reddit last showed you a listing, or 0.
   const seen = () => {
-    const m = document.cookie.match(new RegExp(`(?:^|; )${SEEN_COOKIE}=(\\d+)(?:;|$)`));
+    const m = document.cookie.match(
+      new RegExp(`(?:^|; )${SEEN_COOKIE}=(\\d+)(?:;|$)`),
+    );
     const n = m ? Number(m[1]) : 0;
     return n <= Date.now() ? n : 0;
   };
 
   // Where a page should go: a URL, or null to stay. `rest` is the query and hash.
-  const target = (path, rest = '') => {
+  const target = (path, rest = "") => {
     if (isSub(path)) return hot(path) + rest;
     if (!refused()) {
-      if (FRONT.test(path)) return OLD + '/hot' + rest;
+      if (FRONT.test(path)) return OLD + "/hot" + rest;
       return OLD_FEED.test(path) ? OLD + path + rest : null;
     }
     if (!FRONT.test(path)) return null;
     const f = feed();
-    return f ? f + '/hot/' : null;
+    return f ? f + "/hot/" : null;
   };
 
   const go = (how, url, path) => {
@@ -161,45 +175,55 @@
 
   // `loaded`: a fresh page load, the only time old Reddit can have just sent you back. A
   // listing shown since then means it let you in, and you came back yourself.
-  const onPage = loaded => {
+  const onPage = (loaded) => {
     const path = location.pathname;
     const f = path.match(FEED);
     if (f) write(KEY_FEED, f[0]);
     const now = Date.now();
-    if (loaded === true && !refused() && now - time(KEY_TRIED) < BOUNCE_MS
-      && (path === read(KEY_TRIED_PATH) || FRONT.test(path)) && seen() < time(KEY_TRIED)) {
+    if (
+      loaded === true &&
+      !refused() &&
+      now - time(KEY_TRIED) < BOUNCE_MS &&
+      (path === read(KEY_TRIED_PATH) || FRONT.test(path)) &&
+      seen() < time(KEY_TRIED)
+    ) {
       write(KEY_REFUSED, String(now)); // sent to old Reddit moments ago and back: turned away
     }
     const url = target(path, location.search + location.hash);
     // replace() so Back skips this page instead of landing on it and redirecting again
-    if (url) go('replace', url, path);
+    if (url) go("replace", url, path);
   };
 
   onPage(true);
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') onPage(); // Safari preload: see above
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") onPage(); // Safari preload: see above
   });
 
   // In-app navigation (pushState) isn't seen by popstate; the Navigation API reports every
   // same-document navigation. No target is redirected again, so there's no loop.
   if (window.navigation) {
-    navigation.addEventListener('navigatesuccess', () => onPage());
+    navigation.addEventListener("navigatesuccess", () => onPage());
   } else {
-    window.addEventListener('popstate', () => onPage());
+    window.addEventListener("popstate", () => onPage());
   }
 
-  retargetLinks(path => (isSub(path) ? hot(path) : null));
+  retargetLinks((path) => (isSub(path) ? hot(path) : null));
 
   // Delegation catches the logo even after SPA re-renders, and needs no
   // document.body (null at document-start).
-  document.addEventListener('click', e => {
-    // Leave modified and non-left clicks (new tab/window) to the browser.
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    if (!e.target.closest('#reddit-logo')) return;
-    const url = target('/');
-    if (!url) return; // nothing better: Reddit's own front page
-    e.preventDefault();
-    go('assign', url, '/');
-  }, true);
+  document.addEventListener(
+    "click",
+    (e) => {
+      // Leave modified and non-left clicks (new tab/window) to the browser.
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+        return;
+      if (!e.target.closest("#reddit-logo")) return;
+      const url = target("/");
+      if (!url) return; // nothing better: Reddit's own front page
+      e.preventDefault();
+      go("assign", url, "/");
+    },
+    true,
+  );
 })();
