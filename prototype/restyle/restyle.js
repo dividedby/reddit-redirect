@@ -1,5 +1,5 @@
 // Prototype of the feed restyle for old Reddit's feed pages (front page, r/all, r/popular,
-// custom feeds). Adds `rr` to <html>, a small app bar, and per-post header/media/pills.
+// custom feeds), on old.reddit.com or on www in the old design. Adds `rr` to <html>, a small app bar, and per-post header/media/pills.
 // Everything reuses Reddit's own elements (vote arrows, save, hide) so their handlers work.
 // Reddit's handlers find them by structure: the vote update looks for `.midcol` as a direct
 // child of the post, and save listens for `.save-button a` and reads the link's own text. So
@@ -14,18 +14,15 @@
 
   // Old Reddit declares a 1024px viewport, which a phone shows as a shrunken desktop page.
   const setMeta = (name, content) => {
-    let meta = document.querySelector(`meta[name="${name}"]`);
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.name = name;
-      (document.head || root).append(meta);
-    }
+    const found = document.querySelectorAll(`meta[name="${name}"]`);
+    found.forEach(meta => { meta.content = content; });
+    if (found.length) return;
+    const meta = document.createElement('meta');
+    meta.name = name;
     meta.content = content;
+    (document.head || root).append(meta);
   };
-  const setViewport = () => {
-    setMeta('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
-    setMeta('color-scheme', 'light dark'); // the page has its own dark theme
-  };
+  const setViewport = () => setMeta('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
 
   const el = (tag, cls, text) => {
     const n = document.createElement(tag);
@@ -154,6 +151,12 @@
         if (!a || /\/(wiki|gilded)\/?$/.test(a.pathname)) continue;
         const pill = el('a', 'rr-chip', a.textContent.replace(/^./, c => c.toUpperCase()));
         pill.href = a.href;
+        // Best links to the front page, which the redirect sends to Hot. Old Reddit also has it
+        // at /best/; on www the redirect sends that to Hot too, so there's no Best to offer.
+        if (a.pathname === '/') {
+          if (location.hostname !== 'old.reddit.com') continue;
+          pill.href = '/best/';
+        }
         if (li.classList.contains('selected')) pill.setAttribute('aria-current', 'page');
         sorts.append(pill);
       }
@@ -177,8 +180,10 @@
       }
     };
     section('Feeds', [['Home', '/hot'], ['Popular', '/r/popular/'], ['All', '/r/all/']]);
-    section('Custom feeds', [...document.querySelectorAll('.side a[href*="/m/"]')].map(a => [a.textContent, a.href]));
-    section('Communities', [...document.querySelectorAll('#sr-bar a')].map(a => [`r/${a.textContent}`, a.href]));
+    section('Custom feeds', [...document.querySelectorAll('.listing-chooser a[href*="/m/"]')].map(a => [a.textContent.trim(), a.href]));
+    // The header's subreddit bar, whose first list is the feeds above.
+    const subs = [...document.querySelectorAll('.sr-list a')].filter(a => /^\/r\/\w+\/?$/.test(a.pathname) && !/^\/r\/(all|popular)\/?$/i.test(a.pathname));
+    section('Communities', subs.map(a => [`r/${a.textContent.trim()}`, a.href]));
     document.body.prepend(rail);
   };
 
@@ -285,6 +290,15 @@
   setViewport();
   const start = () => {
     try {
+      // www can serve the new design whatever the cookie (it does at some spellings): leave it be.
+      if (!document.getElementById('header')) {
+        root.classList.remove('rr');
+        document.getElementById('rr-style')?.remove();
+        return;
+      }
+      setViewport(); // again, if the page's own came after ours
+      setMeta('color-scheme', 'light dark'); // the page has its own dark theme
+      setMeta('darkreader-lock', ''); // so Dark Reader leaves it alone
       buildAppBar();
       buildRail();
       restyleAll();

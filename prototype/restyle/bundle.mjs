@@ -1,5 +1,5 @@
 // Writes restyle.user.js: restyle.css and restyle.js as one userscript for old Reddit's feed
-// pages, to install in a userscript manager or inject with mobile-safari-lab.
+// pages (on old.reddit.com, or on www where the redirect keeps feeds in the old design), to install in a userscript manager or inject with mobile-safari-lab.
 import { readFile, writeFile } from 'node:fs/promises';
 
 const dir = new URL('.', import.meta.url).pathname;
@@ -10,8 +10,9 @@ await writeFile(dir + 'restyle.user.js', `// ==UserScript==
 // @name        Reddit feed restyle (prototype)
 // @namespace   https://github.com/dividedby/reddit-redirect/prototype
 // @description Prototype only: makes old Reddit's feed pages look like new Reddit. Not for release.
-// @version     0.1
+// @version     0.2
 // @match       https://old.reddit.com/*
+// @match       https://www.reddit.com/*
 // @run-at      document-start
 // @grant       none
 // @noframes
@@ -23,6 +24,9 @@ await writeFile(dir + 'restyle.user.js', `// ==UserScript==
   // The same feeds the redirect keeps on old Reddit (OLD_FEED in redditRedirect.user.js).
   const OLD_FEED = /^\\/((hot|new|rising|top|controversial|best)\\/?)?$|^\\/(r\\/(all(-\\w+)*|popular|friends|mod|random|randnsfw|\\w+(\\+\\w+)+)|u(ser)?\\/[\\w-]+\\/m\\/[\\w-]+)(\\/(hot|new|rising|top|controversial|best|gilded))?\\/?$/i;
   if (!OLD_FEED.test(location.pathname) || document.getElementById('rr-style')) return;
+  // On www, feeds are in the old design only with this cookie (redirect 2.5, after old Reddit
+  // has turned you away). restyle.js backs out if the page turns out not to be.
+  if (location.hostname !== 'old.reddit.com' && !/(?:^|; )redesign_optout=/.test(document.cookie)) return;
   const style = document.createElement('style');
   style.id = 'rr-style';
   style.textContent = ${JSON.stringify(css)};
