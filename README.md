@@ -20,9 +20,9 @@ custom feed sorted by Hot.
   `r/mod` and `r/random`. Posts and other pages under them open in the new design. Old
   Reddit needs you to be logged in.
 - **Two addresses can't be kept on `www.reddit.com`:** Reddit's server sends
-  `www.reddit.com/r/a+b/` to the front page before any script runs, and `www.reddit.com/r/all`
-  too when you're logged out, so you land on old Reddit's Hot instead. Links and bookmarks
-  on `old.reddit.com` itself work.
+  `www.reddit.com/r/a+b/` and `www.reddit.com/r/all` to the front page before any script
+  runs, so you land on old Reddit's Hot instead. Links and bookmarks on `old.reddit.com`
+  itself work.
 - The front page (`reddit.com/`, `/hot`, `/best`, and bare `old.reddit.com`) goes to
   `old.reddit.com/hot`. Anything after the address (like `?feed=home`) is kept.
 - **Subreddits open in the new design, sorted by Hot** (`/r/<name>/hot/`). A subreddit you
@@ -45,6 +45,9 @@ custom feed sorted by Hot.
 - The remembered feed and the turn-away time stay in your browser's storage for reddit.com.
   The one thing Reddit can see is `rhr_old_seen`, a cookie holding the time old Reddit last
   showed you a listing. It's gone after a minute, and nothing is sent anywhere else.
+- Old Reddit sets a cookie (`redesign_optout`) that puts all of `www.reddit.com` in the old
+  design. The script removes it on old Reddit, so posts and subreddits really do open in the
+  new design.
 
 ## Installing
 

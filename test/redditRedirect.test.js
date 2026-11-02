@@ -12,7 +12,7 @@ const src = fs.readFileSync(path.join(__dirname, '..', 'redditRedirect.user.js')
 // later page loads), `cookies` the cookie jar both hosts share (name to value), `listing` whether
 // the page has old Reddit's #siteTable, `readyState` the document's, `now` the clock. Returns the
 // fakes so tests can fire events and read calls.
-const load = (pathname, { search = '', hash = '', withNavigation = true, store = {}, now = 1e12, noStorage = false, hostname = 'www.reddit.com', cookies = {}, listing = false, readyState = 'loading' } = {}) => {
+const load = (pathname, { search = '', hash = '', withNavigation = true, store = {}, now = 1e12, noStorage = false, hostname = 'www.reddit.com', cookies = {}, listing = false, readyState = 'loading', cookieStore } = {}) => {
   const calls = { replace: [], assign: [] };
   const location = {
     pathname, search, hash, hostname,
@@ -32,12 +32,13 @@ const load = (pathname, { search = '', hash = '', withNavigation = true, store =
     set cookie(line) {
       const [pair, ...attrs] = line.split('; ');
       const [k, v] = pair.split('=');
-      cookies[k] = v;
+      if (attrs.includes('max-age=0')) delete cookies[k];
+      else cookies[k] = v;
       document.cookieAttrs = attrs;
     },
   };
   const navigation = withNavigation ? { addEventListener: on(navListeners) } : undefined;
-  const window = { addEventListener: on(winListeners), navigation };
+  const window = { addEventListener: on(winListeners), navigation, cookieStore };
   const deny = () => { throw new Error('SecurityError'); };
   const localStorage = noStorage ? { getItem: deny, setItem: deny } : {
     getItem: k => (k in store ? store[k] : null),
@@ -199,6 +200,47 @@ test('old Reddit is tried again a day after a turn-away', () => {
   load('/', { store, now: 1e12 });
   load('/', { store, now: 1e12 + 3000 });
   assert.deepEqual(load('/r/all', { store, now: 1e12 + 3000 + DAY + 1 }).calls.replace, [OLD + '/r/all']);
+});
+
+test('old Reddit clears the cookie that would put posts and subreddits in the old design', () => {
+  const cookies = { redesign_optout: 'true', other: 'x' };
+  const t = load('/hot', { hostname: 'old.reddit.com', cookies, listing: true });
+  assert.equal(cookies.redesign_optout, undefined); // on load
+  assert.equal(cookies.other, 'x');
+  assert.deepEqual(t.document.cookieAttrs, ['domain=.reddit.com', 'path=/', 'max-age=0']);
+  // Reddit sets it again later (a save, say); each way off the page clears it again.
+  const leave = fn => { cookies.redesign_optout = 'true'; fn(); assert.equal(cookies.redesign_optout, undefined); };
+  leave(() => fire(t.docListeners, 'DOMContentLoaded'));
+  leave(() => { t.document.visibilityState = 'hidden'; fire(t.docListeners, 'visibilitychange'); });
+  t.document.visibilityState = 'visible';
+  leave(() => fire(t.docListeners, 'click', linkClick(POST).e));
+});
+
+test('old Reddit clears the cookie as soon as it appears, where the browser reports that', () => {
+  const cookies = {};
+  const listeners = {};
+  const cookieStore = { addEventListener: (type, fn) => { listeners[type] = fn; } };
+  load('/hot', { hostname: 'old.reddit.com', cookies, cookieStore });
+  cookies.redesign_optout = 'true';
+  listeners.change({ changed: [{ name: 'other' }], deleted: [] });
+  assert.equal(cookies.redesign_optout, 'true');
+  listeners.change({ changed: [{ name: 'redesign_optout' }], deleted: [] });
+  assert.equal(cookies.redesign_optout, undefined);
+});
+
+test('old Reddit leaves the cookie alone when a link stays on old Reddit', () => {
+  const cookies = {};
+  const t = load('/hot', { hostname: 'old.reddit.com', cookies, listing: true });
+  cookies.redesign_optout = 'true';
+  fire(t.docListeners, 'click', linkClick('/r/popular/').e);
+  assert.equal(cookies.redesign_optout, 'true');
+});
+
+test('www leaves the cookie alone', () => {
+  const cookies = { redesign_optout: 'true' };
+  const t = load(POST, { cookies });
+  fire(t.docListeners, 'visibilitychange');
+  assert.equal(cookies.redesign_optout, 'true');
 });
 
 test('old Reddit marks the time once it has shown a listing', () => {

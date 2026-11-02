@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+## [2.4] - 2026-11-01
+
+### Fixed
+
+- Posts, subreddits and profiles now really open in the new design. Visiting old Reddit sets
+  a cookie (`redesign_optout`) that puts all of `www.reddit.com` in the old design, so after
+  your first feed they were showing the old design too. The script now removes it on old
+  Reddit. If you've been seeing the old design on those pages, this is a visible change.
+- The notes on addresses that can't be kept: `www.reddit.com/r/all` goes to the front page
+  whether or not you're logged in. It only loaded before because of that cookie.
+
 ## [2.3] - 2026-11-01
 
 ### Fixed
