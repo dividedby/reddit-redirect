@@ -198,6 +198,20 @@ html.rr .modal-dialog {
 }
 html.rr .modal-content, html.rr .modal-iframe { box-sizing: border-box; width: 100% !important; max-width: 100%; }
 
+/* Crosspost is light-only, and in dark its picker comes out white on white. */
+html.rr .crossposting-modal .modal-body { padding: 24px 16px; background: var(--surface); color: var(--text); }
+html.rr .crossposting-modal * { font-family: var(--font) !important; }
+html.rr .crossposting-modal .crosspost-header-title { color: var(--link); }
+html.rr .crossposting-modal .crosspost-description { background: var(--pill); border: 0; border-radius: 8px; color: var(--text); }
+html.rr .crossposting-modal .crosspost-thing-preview { background: var(--bg); border-color: var(--line); }
+html.rr .crossposting-modal .crosspost-label, html.rr .crossposting-modal .crosspost-warning,
+html.rr .crossposting-modal .crosspost-thing-preview-text { color: var(--text); }
+html.rr .crossposting-modal .crosspost-field { background: var(--bg); color: var(--text); border-color: var(--line); }
+html.rr .crossposting-modal .crosspost-warning a, html.rr .crossposting-modal .crosspost-link { color: var(--link) !important; }
+@media (prefers-color-scheme: dark) {
+  html.rr .post-sharing .c-close { filter: invert(1); }
+}
+
 /* expanded media and text from Reddit's own expando */
 html.rr .expando { margin: 6px 0; max-width: 100%; }
 html.rr .expando .md { max-width: none; font-size: 14px; color: var(--text); }
