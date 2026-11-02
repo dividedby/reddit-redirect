@@ -203,11 +203,14 @@
       return true;
     }
     if (!feedPage) return true;
+    // Only these can say the cookie has stopped working: Reddit serves the new design at some
+    // spellings (/R/Popular/) whatever the cookie, and that says nothing about the others.
+    const standard = FEED_PATHS.includes(feedRoot(path));
     const shown = loaded === true ? carried
       : document.readyState === 'loading' || !!document.getElementById('siteTable');
     if (!shown) {
-      if (!hasOptOut()) { // cookies are blocked
-        fallbackFailed();
+      if (!hasOptOut()) { // cookies are blocked, or this spelling doesn't take one
+        if (standard) fallbackFailed();
         return true;
       }
       location.replace(path + rest);
@@ -217,7 +220,7 @@
       const check = () => {
         if (document.getElementById('siteTable')) {
           write(KEY_HOT_TRIED, '0');
-        } else {
+        } else if (standard) {
           fallbackFailed();
           if (!fallback()) onPage(); // if that couldn't be recorded, moving on could loop
         }

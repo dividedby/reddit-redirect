@@ -291,6 +291,22 @@ test('fallback: with storage that can be read but not written, nothing loops', (
   assert.deepEqual(t.calls.replace, []);
 });
 
+test('fallback: only a standard feed can decide the cookie has stopped working', () => {
+  // Reddit serves the new design at /R/Popular/ whatever the cookie, as seen on a real phone.
+  for (const [p, root] of [['/R/Popular/', '/R/Popular'], ['/user/a/m/b/', '/user/a/m/b'], ['/r/all-pics/', '/r/all-pics']]) {
+    const store = turnedAway();
+    const t = load(p, { store, cookies: { [`redesign_optout@${root}`]: 'true' }, now: 1e12 });
+    assert.deepEqual(t.calls.replace, [], p);
+    fire(t.docListeners, 'DOMContentLoaded');
+    assert.equal(store['rhr:fallbackOff'], undefined, p);
+    assert.deepEqual(t.calls.replace, [], p);
+    // Nor where a cookie for that spelling doesn't take.
+    const blocked = turnedAway();
+    assert.deepEqual(load(p, { store: blocked, blockCookies: true, now: 1e12 }).calls.replace, [], p);
+    assert.equal(blocked['rhr:fallbackOff'], undefined, p);
+  }
+});
+
 test('fallback: where cookies can\'t be set, nothing loops', () => {
   const store = turnedAway();
   assert.deepEqual(load('/r/popular/', { store, blockCookies: true, now: 1e12 }).calls.replace, []);
