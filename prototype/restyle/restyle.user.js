@@ -13,7 +13,7 @@
 (() => {
   'use strict';
   // The same feeds the redirect keeps on old Reddit (OLD_FEED in redditRedirect.user.js).
-  const OLD_FEED = /^\/((hot|new|rising|top|controversial|best)\/?)?$|^\/r\/(all(-\w+)*|popular|\w+(\+\w+)+)(\/|$)|^\/user\/[\w-]+\/m\/[\w-]+/i;
+  const OLD_FEED = /^\/((hot|new|rising|top|controversial|best)\/?)?$|^\/(r\/(all(-\w+)*|popular|friends|mod|random|randnsfw|\w+(\+\w+)+)|u(ser)?\/[\w-]+\/m\/[\w-]+)(\/(hot|new|rising|top|controversial|best|gilded))?\/?$/i;
   if (!OLD_FEED.test(location.pathname) || document.getElementById('rr-style')) return;
   const style = document.createElement('style');
   style.id = 'rr-style';
