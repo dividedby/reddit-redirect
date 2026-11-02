@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+## [2.5] - 2026-11-01
+
 ### Changed
 
 - If old Reddit turns you away, feeds now stay on `www.reddit.com` in the old design, and the
