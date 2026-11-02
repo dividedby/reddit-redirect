@@ -3,7 +3,7 @@
 // @namespace   https://greasyfork.org/en/users/594496-divided-by
 // @author      dividedby
 // @description Opens Reddit's feeds in old Reddit, with the front page on Hot (or your custom feed if old Reddit turns you away), and subreddits on Hot. The logo goes there too
-// @version     2.3
+// @version     2.4
 // @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/dividedby/reddit-redirect
 // @supportURL  https://github.com/dividedby/reddit-redirect/issues
@@ -68,6 +68,17 @@
   // On old Reddit, the bare front page (where the logo points) is sent to Hot, and links to
   // anything but a feed open on the new design.
   if (location.hostname === 'old.reddit.com') {
+    // Old Reddit's pages set this cookie for all of reddit.com (loading any page does, and so
+    // does saving a post), and with it www shows posts and subreddits in the old design too.
+    const clearOptOut = () => {
+      document.cookie = 'redesign_optout=; domain=.reddit.com; path=/; max-age=0';
+    };
+    clearOptOut();
+    // A save sets it again while you're on the page. Clear it as it appears, where the browser
+    // can say so: a request you start next goes out before the page can react to leaving.
+    window.cookieStore?.addEventListener('change', e => {
+      if (e.changed.some(c => c.name === 'redesign_optout')) clearOptOut();
+    });
     const toHot = () => {
       if (location.pathname === '/') location.replace('/hot' + location.search + location.hash);
     };
@@ -76,10 +87,15 @@
     // redirect made then can be lost, so check again once the page is shown.
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') toHot();
+      else clearOptOut();
     });
-    retargetLinks(path => (/^\/(r|u|user)\//i.test(path) && !OLD_FEED.test(path)
-      ? NEW + (isSub(path) ? hot(path) : path) : null));
+    retargetLinks(path => {
+      if (!/^\/(r|u|user)\//i.test(path) || OLD_FEED.test(path)) return null;
+      clearOptOut();
+      return NEW + (isSub(path) ? hot(path) : path);
+    });
     const markSeen = () => {
+      clearOptOut();
       if (!document.getElementById('siteTable')) return; // the log-in page, say
       document.cookie = `${SEEN_COOKIE}=${Date.now()}; domain=.reddit.com; path=/; max-age=60; secure; samesite=lax`;
     };

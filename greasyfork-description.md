@@ -2,14 +2,21 @@ Reddit's feeds open in **old Reddit**, with the front page on **Hot** instead of
 default **Best**, and the Reddit logo takes you to Hot too. Posts and subreddits open in
 Reddit's new design, with subreddits on **Hot**.
 
+**New in 2.4**
+
+- **Posts, subreddits and profiles now really open in the new design.** Visiting old Reddit
+  sets a cookie that puts all of `www.reddit.com` in the old design, so after your first feed
+  they were showing the old design too. The script now removes it on old Reddit. If you've
+  been seeing the old design on those pages, this is a visible change.
+- Reddit's server sends `www.reddit.com/r/a+b/` and `www.reddit.com/r/all` to the front page
+  before any script runs, so those land on old Reddit's Hot. Links and bookmarks on
+  `old.reddit.com` itself work.
+
 **New in 2.3**
 
 - **Opening `reddit.com` again soon after going to old Reddit no longer pauses it for a day.**
   That only happens now if old Reddit didn't show you a listing first. To tell the two
   apart, old Reddit sets a cookie holding the time (`rhr_old_seen`) that lasts a minute.
-- Good to know: Reddit's server sends `www.reddit.com/r/a+b/` to the front page before any
-  script runs (and `www.reddit.com/r/all` when you're logged out), so those land on old
-  Reddit's Hot. Links and bookmarks on `old.reddit.com` itself work.
 
 **New in 2.2**
 
