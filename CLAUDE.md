@@ -2,7 +2,14 @@
 
 ## Project
 
-A single userscript, `redditRedirect.user.js`, that opens Reddit in old Reddit with the front page on Hot, and makes the logo click go there too. The new design has no Hot home feed any more and has removed r/all, so: feeds (`OLD_FEED`: front page, `r/all`, `r/popular`, `r/friends`/`r/mod`/`r/random`, `r/a+b`, custom feeds under `/user/` or `/u/`, each with an optional sort but nothing deeper, so posts under them aren't feeds) go to the same address on `old.reddit.com` (front page → `/hot`); a bare subreddit (`/r/x`) goes to `/r/x/hot/` on the new design; everything else stays on the new design. If old Reddit bounces the user back to the same www page (or the front page) within 15 s without having shown a listing (the script on old Reddit marks that in a one-minute `.reddit.com` cookie, `rhr_old_seen`), then for a day feeds stay on www in the old design and the front page goes to `/hot` there, using `redesign_optout` cookies scoped to feed paths; if that fails (`/hot` bounces straight back to `/`, or a feed shows no listing), feeds stay on the new design and the front page goes to the last custom feed they opened (`/user/<name>/m/<feed>/hot/`), or is left alone. Other state lives in www.reddit.com's localStorage (`rhr:*`). Reddit's server sends `www.reddit.com/r/a+b/` and `/r/all` to `/` before the script runs. On old.reddit.com the script sends bare `/` (where its logo points; Best when logged in) to `/hot`, points clicked links to posts, subreddits and profiles at the new design, and removes the `redesign_optout` cookie (old Reddit sets it for all of reddit.com, and it would put www in the old design). No build step and no dependencies. Behavior tests in `test/redditRedirect.test.js` run the script against small hand-made fakes (Node's built-in runner): run plain `node --test` from the repo root (Node 22; CI runs the same on every push and PR). Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
+A single userscript, `redditRedirect.user.js`, that opens Reddit in old Reddit with the front page on Hot, and makes the logo click go there too. Feeds go to `old.reddit.com`, a bare subreddit goes to its Hot page on the new design, everything else stays on the new design; fallbacks apply if old Reddit bounces the user back. Full rules: `docs/redirect-behavior.md`.
+
+No build step and no dependencies. Installs and updates come from Greasy Fork (the `@updateURL`/`@downloadURL` in the header).
+
+## Commands
+
+- Test: `node --test` from the repo root (Node 22; behavior tests in `test/redditRedirect.test.js` run the script against hand-made fakes; CI runs the same on every push and PR).
+- Format check: `pnpm format:check` (Prettier defaults; CI in `.github/workflows/format.yml`).
 
 ## Rules
 
@@ -31,67 +38,12 @@ Every **user-facing change** moves these together, in the same commit or PR:
 
 Pushing to `main` is a release once Greasy Fork syncs from it: unfinished work goes on a branch.
 
-## Userscript engineering
+## Where things live
 
-Before changing a `.user.js`, read [`docs/agents/userscript-guidelines.md`](docs/agents/userscript-guidelines.md),
-the full checklist (shared by all the dividedby userscript repos). The rules that matter most:
+| What                                                       | Where                                                                                                                        |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Redirect behavior (the old Project section)                | `docs/redirect-behavior.md`                                                                                                  |
+| Userscript checklist; exception (`@run-at document-start`) | `~/.claude/rules/userscripts.md`; `.claude/rules/userscripts-local.md`; `docs/agents/userscript-guidelines.md` (shared copy) |
+| Issue tracker, triage labels, changelog style, domain docs | `docs/agents/issue-tracker.md`, `triage-labels.md`, `changelog-guideline.md`, `domain.md`                                    |
 
-- **Smallest reliable change.** Preserve existing behavior, fix the problem at hand without
-  unrelated rewrites, and add no dependency, build step or abstraction without a reason.
-- **Metadata.** Narrow `@match`; only the `@grant`s actually used (`@grant none` stated
-  explicitly); no wildcard `@connect`; `@run-at` chosen by need. Never change `@namespace` or
-  the update URLs.
-- **Untrusted input** (page text, network responses, anything read back from storage) never
-  goes into `innerHTML`: build DOM with `textContent`. No `eval`, `new Function` or remote code.
-- **Validate stored values** (type and shape) before using them; keep storage keys namespaced.
-- **Safe to run twice** (a second install, re-initialization): no duplicate UI, listeners,
-  styles or observers.
-- **Observers and timers.** Observe the smallest stable root with filters, ignore the script's
-  own mutations, never poll without a bound, and read layout before writing it.
-- **Network and errors.** Time out, check status and response shape, ignore stale results; no
-  silent `catch {}` for unexpected errors (log with the script's prefix; leave a comment where
-  swallowing is intended, e.g. storage in private mode).
-- **Navigation.** `popstate` doesn't see `pushState`; redirects use `location.replace` so Back
-  still works; a patched page API keeps its arguments, `this` and return value.
-- **Validation.** Node/jsdom tests don't prove the script works in a manager: check it on the
-  real site and say exactly what was and wasn't tested.
-
-Deliberate exception here: `@run-at document-start`, so the redirect happens before Reddit renders.
-
-## Agent skills
-
-### Issue tracker
-
-GitHub issues in `dividedby/reddit-redirect` (via `gh`). See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-State: `needs-triage`, `ready-for-agent`, `ready-for-human`, `blocked`, `wontfix`. Category: `bug`, `enhancement`, `chore`, `epic`. Size: `size:S/M/L/XL`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
-
-### Changelog
-
-See `docs/agents/changelog-guideline.md`.
-
-## Intake convention
-
-When I say **"file an idea"** or **"file an issue"** (unqualified), append an
-**enriched row** to this repo's [**Idea Inbox**](https://github.com/dividedby/reddit-redirect/issues/16) issue (label
-`idea-inbox`, one per repo): the raw idea **plus the ambient context/links
-available right now** — the source file/issue/PR that prompted it and a sentence
-of why — as an unchecked item at the TOP of `## Ideas`. Do not grill or scope it
-yet; that happens at drain. The capture and drain protocol lives once in
-[`docs/agents/idea-inbox.md`](./docs/agents/idea-inbox.md) (the issue body is
-human-facing and carries no operating instructions).
-
-When I say **"file a _tracked_ issue"** — or hand you a **plainly-scoped bug** —
-skip the Inbox and file a `needs-triage` issue directly via `gh`.
-
-## Code style
-
-Formatting uses each tool's standard defaults, the same across all `dividedby` repos. Don't add style options or format by hand. Files format on edit through the post-edit hook. CI checks it in `.github/workflows/format.yml`.
-
-- **JS, TS, HTML, CSS, JSON, Markdown, YAML:** Prettier defaults. Run `pnpm format`, or `pnpm format:check` to check.
+Ideas: Idea Inbox is issue #16 (label `idea-inbox`); protocol in `docs/agents/idea-inbox.md`.
