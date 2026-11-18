@@ -8,10 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
-### Changed
-
-- Internal: `docs/agents/domain.md` and `docs/agents/idea-inbox.md` name the domain glossary `GLOSSARY.md` (was `CONTEXT.md`, and `CONTEXT-MAP.md` → `GLOSSARY-MAP.md`), the name the upstream `grilling`, `domain-modeling`, `tdd`, `to-spec` and `to-tickets` skills now read. No behavior change.
-
 ## [2.5] - 2026-11-01
 
 ### Changed
