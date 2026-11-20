@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- The licence is now MIT (was GPL-3.0). Releases before this change stay under GPL-3.0.
+
 ## [2.5] - 2026-11-01
 
 ### Changed

@@ -73,4 +73,4 @@ Bugs and ideas go in the [issues](https://github.com/dividedby/reddit-redirect/i
 
 ## License
 
-GPL-3.0-or-later. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
