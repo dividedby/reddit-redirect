@@ -10,7 +10,7 @@ No build step and no dependencies. Installs and updates come from Greasy Fork (t
 
 - Test: `node --test` from the repo root (Node 22; behavior tests in `test/redditRedirect.test.js` run the script against hand-made fakes; CI runs the same on every push and PR).
 - Format check: `pnpm format:check` (Prettier defaults; CI in `.github/workflows/format.yml`).
-- Lint: no linter; `pnpm format:check` is the only static check.
+- Lint: `pnpm lint` (oxlint, default rules, warnings fail; CI `lint` job in `.github/workflows/test.yml`).
 
 ## Rules
 
