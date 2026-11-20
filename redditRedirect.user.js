@@ -4,7 +4,7 @@
 // @author      dividedby
 // @description Opens Reddit's feeds in old Reddit, with the front page on Hot, and subreddits on Hot. The logo goes there too
 // @version     2.5
-// @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
+// @license     MIT
 // @homepageURL https://github.com/dividedby/reddit-redirect
 // @supportURL  https://github.com/dividedby/reddit-redirect/issues
 // @contributionURL     https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=dividedbygit@gmail.com&item_name=Reddit+Hot+Donation
